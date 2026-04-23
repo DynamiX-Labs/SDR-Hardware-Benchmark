@@ -1,0 +1,9 @@
+# This is a CODEOWNERS file. It uses the same syntax as a .gitignore file.
+# It is used to assign code owners for specific files or directories.
+
+# Global owners for everything in the repo
+*       @ARYA-mgc @vishal-r07
+
+# Specific owners for specific directories
+/CubeSat-Telemetry-Decoder/  @ARYA-mgc
+/SatSDR-Universal/           @vishal-r07

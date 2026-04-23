@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  satsdr:
+    build: .
+    container_name: satsdr_dev
+    volumes:
+      - .:/app
+    devices:
+      # Allow access to USB SDR devices (RTL-SDR, HackRF, etc)
+      - /dev/bus/usb:/dev/bus/usb
+    network_mode: host
+    privileged: true
+    environment:
+      - DISPLAY=$DISPLAY
+    stdin_open: true
+    tty: true

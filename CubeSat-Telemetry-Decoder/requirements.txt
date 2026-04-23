@@ -1,0 +1,8 @@
+numpy>=1.24
+scipy>=1.10
+pyrtlsdr>=0.3.0
+pyyaml>=6.0
+click>=8.1
+flask>=3.0        # Ground station web UI
+flask-socketio>=5.3
+pytest>=7.4

@@ -1,0 +1,10 @@
+numpy>=1.24
+scipy>=1.10
+psutil>=5.9       # CPU/memory monitoring
+pyrtlsdr>=0.3.0
+pyyaml>=6.0
+click>=8.1
+matplotlib>=3.7
+pandas>=2.0       # Results analysis
+tabulate>=0.9
+pytest>=7.4

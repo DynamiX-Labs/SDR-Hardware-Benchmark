@@ -1,0 +1,29 @@
+# Ground Station Configuration
+# Copy to station.yaml and fill in your details
+
+station:
+  name: "DynamiX Ground Station"
+  callsign: "VU2XXX"          # Your amateur callsign
+  latitude: 13.0827           # degrees North
+  longitude: 80.2707          # degrees East
+  altitude: 6.0               # meters ASL
+  timezone: "Asia/Kolkata"
+
+tracking:
+  min_elevation: 10.0         # degrees — ignore passes below this
+  doppler_update_hz: 10       # Doppler correction frequency
+  rotator_enabled: false      # Enable antenna rotator
+
+rotator:
+  type: "hamlib"              # hamlib or direct
+  host: "127.0.0.1"
+  port: 4533
+  park_az: 180.0              # Park azimuth (south)
+  park_el: 0.0
+
+tle:
+  cache_hours: 12             # Hours before re-fetching TLEs
+  sources:
+    - group: "amateur"
+    - group: "weather"
+    - group: "stations"

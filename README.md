@@ -38,11 +38,11 @@ NOAA APT · METEOR LRPT · ADS-B 1090ES · ACARS · CubeSat AX.25 · CCSDS · GP
 Here are some examples of our decoding pipeline in action:
 
 <div align="center">
-  <img src="docs/images/sdr_waterfall.jpg" width="45%" alt="Wideband SDR Waterfall">
-  <img src="docs/images/spectrum_peak.jpg" width="45%" alt="Spectrum Analyzer Peak">
-  <br>
-  <img src="docs/images/grc_flowgraph.jpg" width="45%" alt="GNU Radio Companion Decoder Flowgraph">
-  <img src="docs/images/packet_decode.png" width="45%" alt="Wireshark Packet Decode & Hex">
+  <img src="docs/images/sdr_waterfall.jpg" height="250" alt="Wideband SDR Waterfall">
+  <img src="docs/images/grc_flowgraph.jpg" height="250" alt="GNU Radio Companion Decoder Flowgraph">
+  <br><br>
+  <img src="docs/images/packet_decode.png" height="250" alt="Wireshark Packet Decode & Hex">
+  <img src="docs/images/spectrum_peak.jpg" height="250" alt="Spectrum Analyzer Peak">
 </div>
 
 ---

@@ -33,7 +33,7 @@ NOAA APT · METEOR LRPT · ADS-B 1090ES · ACARS · CubeSat AX.25 · CCSDS · GP
 
 ---
 
-## 🖼️ Gallery
+## 🔬 System Outputs
 
 Here are some examples of our decoding pipeline in action:
 

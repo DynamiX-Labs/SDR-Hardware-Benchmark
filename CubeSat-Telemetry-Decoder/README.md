@@ -104,10 +104,10 @@ ADCS (Attitude):
 Here are some examples of our telemetry decoding pipeline in action:
 
 <div align="center">
-  <img src="../docs/images/sdr_waterfall.png" width="45%" alt="Wideband SDR Waterfall">
-  <img src="../docs/images/spectrum_peak.png" width="45%" alt="Spectrum Analyzer Peak">
+  <img src="../docs/images/sdr_waterfall.jpg" width="45%" alt="Wideband SDR Waterfall">
+  <img src="../docs/images/spectrum_peak.jpg" width="45%" alt="Spectrum Analyzer Peak">
   <br>
-  <img src="../docs/images/grc_flowgraph.png" width="45%" alt="GNU Radio Companion Decoder Flowgraph">
+  <img src="../docs/images/grc_flowgraph.jpg" width="45%" alt="GNU Radio Companion Decoder Flowgraph">
   <img src="../docs/images/packet_decode.png" width="45%" alt="Wireshark Packet Decode & Hex">
 </div>
 

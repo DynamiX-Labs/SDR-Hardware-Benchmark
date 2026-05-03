@@ -4,7 +4,7 @@ scipy>=1.10
 matplotlib>=3.7
 
 # SDR Hardware
-pyrtlsdr>=0.3.0
+pyrtlsdr>=0.4.0
 # SoapySDR  # install via system package: apt install python3-soapysdr
 
 # Satellite protocols

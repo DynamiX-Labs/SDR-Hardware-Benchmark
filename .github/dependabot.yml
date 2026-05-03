@@ -5,30 +5,54 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   # Maintain dependencies for Python environments
   - package-ecosystem: "pip"
     directory: "/CubeSat-Telemetry-Decoder"
     schedule:
       interval: "weekly"
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
       
   - package-ecosystem: "pip"
     directory: "/SatSDR-Universal"
     schedule:
       interval: "weekly"
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "pip"
     directory: "/Doppler-Auto-Tracker"
     schedule:
       interval: "weekly"
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "pip"
     directory: "/SDR-Hardware-Benchmark"
     schedule:
       interval: "weekly"
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
 
   # Maintain Docker environment
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"

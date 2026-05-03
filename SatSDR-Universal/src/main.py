@@ -9,10 +9,33 @@ import logging
 import sys
 from pathlib import Path
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
+import colorlog
+
+# Setup Aerospace-Grade Console Logging
+handler = colorlog.StreamHandler()
+handler.setFormatter(colorlog.ColoredFormatter(
+    "%(log_color)s%(asctime)s [%(levelname)-8s] %(cyan)s%(name)s%(reset)s: %(message_log_color)s%(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%SZ",
+    reset=True,
+    log_colors={
+        'DEBUG':    'cyan',
+        'INFO':     'green',
+        'WARNING':  'yellow',
+        'ERROR':    'red',
+        'CRITICAL': 'red,bg_white',
+    },
+    secondary_log_colors={
+        'message': {
+            'ERROR':    'red',
+            'CRITICAL': 'red'
+        }
+    }
+))
+
+logger = logging.getLogger()
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
+
 log = logging.getLogger("satsdr")
 
 

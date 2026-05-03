@@ -13,7 +13,7 @@ Pillow>=9.0          # image output
 
 # Orbital Mechanics & Pass Scheduling
 skyfield>=1.46
-sgp4>=2.23
+sgp4>=2.25
 
 # Config & CLI
 pyyaml>=6.0

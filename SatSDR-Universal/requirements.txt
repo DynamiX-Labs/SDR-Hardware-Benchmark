@@ -12,7 +12,7 @@ pyaudio>=0.2.13      # audio output for APT
 Pillow>=9.0          # image output
 
 # Orbital Mechanics & Pass Scheduling
-skyfield>=1.46
+skyfield>=1.54
 sgp4>=2.23
 
 # Config & CLI

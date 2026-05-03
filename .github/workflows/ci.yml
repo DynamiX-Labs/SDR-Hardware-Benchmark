@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.10, 3.11, 3.12]
+        python-version: ['3.10', '3.11', '3.12']
 
     steps:
     - uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         for project in CubeSat-Telemetry-Decoder Doppler-Auto-Tracker SDR-Hardware-Benchmark SatSDR-Universal; do
-          if [ -f $project/requirements.txt ]; then pip install -r $project/requirements.txt; fi
+          if [ -f "$project/requirements.txt" ]; then pip install -r "$project/requirements.txt"; fi
         done
         
     - name: Lint with flake8

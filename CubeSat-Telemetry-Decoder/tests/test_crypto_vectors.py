@@ -12,7 +12,7 @@ class TestCryptoVectors(unittest.TestCase):
         # Standard XTEA test vector
         key = bytes.fromhex("000102030405060708090a0b0c0d0e0f")
         plaintext = bytes.fromhex("4142434445464748") # "ABCDEFGH"
-        ciphertext = bytes.fromhex("a0390589f8b8efa5")
+        ciphertext = bytes.fromhex("497df3d072612cb5")
         
         decrypted = xtea_decrypt_block(key, ciphertext)
         self.assertEqual(decrypted, plaintext)

@@ -39,4 +39,9 @@ jobs:
         
     - name: Test with pytest
       run: |
-        pytest
+        for project in CubeSat-Telemetry-Decoder Doppler-Auto-Tracker SDR-Hardware-Benchmark SatSDR-Universal; do
+          if [ -d "$project/tests" ]; then
+            echo "Running tests for $project..."
+            PYTHONPATH=$project pytest $project/tests
+          fi
+        done

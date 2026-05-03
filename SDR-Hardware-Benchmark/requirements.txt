@@ -5,6 +5,6 @@ pyrtlsdr>=0.3.0
 pyyaml>=6.0
 click>=8.1
 matplotlib>=3.7
-pandas>=2.0       # Results analysis
+pandas>=3.0.2       # Results analysis
 tabulate>=0.9
 pytest>=7.4

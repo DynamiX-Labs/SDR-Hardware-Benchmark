@@ -19,30 +19,55 @@
 The DynamiX Labs suite consists of four interconnected repositories that form a complete, autonomous satellite ground station pipeline. The architecture is designed to handle everything from RF spectrum digitization to secure telemetry federation.
 
 ```mermaid
-graph TD
-    subgraph RF Frontend Layer
-        HW[SDR Hardware<br>RTL-SDR / HackRF / USRP] --> BM(SDR-Hardware-Benchmark<br>DSP Profiling & Verification)
-        BM --> COH(Coherent Combiner)
+flowchart TB
+    %% Styling Directives
+    classDef hardware fill:#1f2937,stroke:#60a5fa,stroke-width:2px,color:#fff
+    classDef tracking fill:#065f46,stroke:#34d399,stroke-width:2px,color:#fff
+    classDef dsp fill:#1e3a8a,stroke:#93c5fd,stroke-width:2px,color:#fff
+    classDef telemetry fill:#4c1d95,stroke:#c4b5fd,stroke-width:2px,color:#fff
+    classDef database fill:#78350f,stroke:#fbbf24,stroke-width:2px,color:#fff
+
+    subgraph RF_Layer [RF Frontend Layer]
+        HW["fa:fa-broadcast-tower SDR Hardware<br>(RTL-SDR / HackRF / USRP)"]:::hardware
+        BM("fa:fa-tachometer-alt SDR-Hardware-Benchmark<br>(DSP Profiling & Verification)"):::hardware
+        COH("fa:fa-layer-group Coherent Combiner<br>(Ring Buffer & Synchronization)"):::hardware
+        
+        HW ==>|Raw IQ| BM
+        BM ==>|Filtered IQ| COH
     end
 
-    subgraph Autonomous Tracking Engine
-        TLE[(CelesTrak TLE)] --> DT[Doppler-Auto-Tracker]
-        DT -->|Closed-Loop Tuning| HW
-        DT -->|Rotator Control| ANT(Antenna Rotator)
+    subgraph Auto_Tracking [Autonomous Tracking Engine]
+        TLE[("fa:fa-database CelesTrak TLE<br>Orbit Ephemeris")]:::database
+        DT["fa:fa-satellite Doppler-Auto-Tracker<br>(SGP4 / EMA Filter)"]:::tracking
+        ANT("fa:fa-crosshairs Antenna Rotator<br>(Hamlib Az/El Control)"):::tracking
+
+        TLE -.->|Update| DT
+        DT ==>|Closed-Loop Tuning| HW
+        DT ==>|Rotator Commands| ANT
     end
 
-    subgraph DSP & Demodulation Pipeline
-        COH -->|Multi-Band IQ Streams| SU(SatSDR-Universal)
-        SU -->|Spectral Intelligence| DEMOD[Modulation Classification]
-        DEMOD -->|Costas BPSK / QPSK / FM| SYNC[Gardner TED Sync]
-        SYNC -->|Soft Symbols| VITERBI[FEC Decoder]
+    subgraph DSP_Layer [DSP & Demodulation Pipeline]
+        SU["fa:fa-microchip SatSDR-Universal<br>(Multi-Band Extractor)"]:::dsp
+        SPEC["fa:fa-wave-square Spectral Intelligence<br>(Welch PSD / Cyclostationary)"]:::dsp
+        SYNC["fa:fa-sync Gardner TED Sync<br>& Costas Carrier Recovery"]:::dsp
+        FEC["fa:fa-random FEC Decoder<br>(Viterbi / Reed-Solomon)"]:::dsp
+
+        COH ==>|Multi-Band IQ| SU
+        SU ==>|SOI Detection| SPEC
+        SPEC ==>|Modulation Guess| SYNC
+        SYNC ==>|Soft Symbols| FEC
     end
 
-    subgraph Aerospace Telemetry & Security
-        VITERBI -->|Raw Frames| CTD(CubeSat-Telemetry-Decoder)
-        CTD -->|XTEA Decryption| CSP[CSP Parsing & Plausibility]
-        CSP -->|ECDSA Signed PKI| FED[Global Ground Station Federation]
-        CTD -->|Isolation Forest| ANOMALY[Anomaly Detection]
+    subgraph Telemetry_Layer [Aerospace Telemetry & Security]
+        CTD["fa:fa-shield-alt CubeSat-Telemetry-Decoder<br>(Core Framework)"]:::telemetry
+        CRYPTO["fa:fa-key XTEA Decryption<br>& CSP Plausibility"]:::telemetry
+        ANOMALY["fa:fa-brain AI Anomaly Detection<br>(Isolation Forest / Thermal)"]:::telemetry
+        FED["fa:fa-globe Global PKI Federation<br>(ECDSA SECP256R1 Node)"]:::telemetry
+
+        FEC ==>|Raw Frames| CTD
+        CTD ==>|Payload Validation| CRYPTO
+        CRYPTO ==>|Sanitized Telemetry| ANOMALY
+        CRYPTO ==>|Signed Packets| FED
     end
 ```
 

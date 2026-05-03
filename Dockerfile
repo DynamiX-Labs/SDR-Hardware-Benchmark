@@ -16,6 +16,8 @@ RUN apt-get update && apt-get install -y \
     libsoapysdr-dev \
     git \
     build-essential \
+    chrony \
+    libhamlib-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up working directory

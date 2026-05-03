@@ -10,13 +10,14 @@
 
 *A comprehensive suite of aerospace-grade signal processing tools, autonomous tracking engines, and cryptography-hardened telemetry decoders built for embedded systems engineers and RF researchers.*
 
+**Project Goals:** Intended for student labs, hobbyist ground stations, and smallsat teams to prototype end-to-end links.
 </div>
 
 ---
 
 ## Master Architecture
 
-The DynamiX Labs suite consists of four interconnected repositories that form a complete, autonomous satellite ground station pipeline. The architecture is designed to handle everything from RF spectrum digitization to secure telemetry federation.
+The DynamiX Labs suite consists of four interconnected repositories that form a complete, autonomous satellite ground station pipeline. This repository serves as the umbrella for the four subsystems plus benchmarking, acting as a cohesive platform rather than just a single tool. The architecture is designed to handle everything from RF spectrum digitization to secure telemetry federation.
 
 ```mermaid
 flowchart TB
@@ -110,6 +111,7 @@ flowchart TB
 | **[Doppler-Auto-Tracker](./Doppler-Auto-Tracker)** | TLE-based continuous Doppler correction and closed-loop SDR tuning engine, integrated with Hamlib-compatible antenna rotator control. | Active |
 | **[SDR-Hardware-Benchmark](./SDR-Hardware-Benchmark)** | Comprehensive performance benchmarking and DSP profiling tools for hardware including RTL-SDR, HackRF, PlutoSDR, and USRP series. | Active |
 
+*Note: Benchmark outputs include JSON/CSV reports of throughput, CPU load, SNR, and EVM per device; see `SDR-Hardware-Benchmark/README.md` for running example tests.*
 ---
 
 ## Formal Verification & Experimental Results
@@ -144,7 +146,7 @@ Using Welch's PSD estimation and adaptive noise floor tracking, the system achie
 
 ## Hardware Support & Integration
 
-The frameworks within this repository are designed to be hardware-agnostic, utilizing `SoapySDR` to interface seamlessly with a wide range of platforms:
+The frameworks within this repository are designed to be hardware-agnostic, utilizing `SoapySDR` to interface seamlessly with a wide range of platforms. Basic pipelines implemented, advanced modes in active development.
 
 - **RTL-SDR v3 / v4** (VHF/UHF Weather, ADS-B)
 - **HackRF One** (Wideband scanning, Tx/Rx)
@@ -156,6 +158,8 @@ The frameworks within this repository are designed to be hardware-agnostic, util
 ---
 
 ## Supported Protocols & Signals
+
+Basic pipelines implemented, advanced modes in active development.
 
 - **Weather**: NOAA APT (137 MHz), METEOR LRPT (137.1 MHz), NOAA HRPT
 - **Aviation**: ADS-B 1090ES, ACARS (129.125 MHz)

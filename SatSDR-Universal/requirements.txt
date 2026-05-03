@@ -11,6 +11,10 @@ pyrtlsdr>=0.3.0
 pyaudio>=0.2.13      # audio output for APT
 Pillow>=9.0          # image output
 
+# Orbital Mechanics & Pass Scheduling
+skyfield>=1.46
+sgp4>=2.23
+
 # Config & CLI
 pyyaml>=6.0
 click>=8.1

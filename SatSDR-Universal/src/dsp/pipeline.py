@@ -88,6 +88,69 @@ class Pipeline:
         self.blocks.append(DSPBlock("fm_demod", _fm_demod))
         return self
 
+    def add_dc_removal(self) -> "Pipeline":
+        """Remove DC offset from IQ stream."""
+        def _dc_remove(samples):
+            return samples - np.mean(samples)
+        self.blocks.append(DSPBlock("dc_removal", _dc_remove))
+        return self
+
+    def add_costas_bpsk_demod(self, loop_bw: float = 0.01) -> "Pipeline":
+        """
+        Add a 2nd-order Costas Loop for BPSK carrier recovery and demodulation.
+        """
+        def _costas(samples, bw=loop_bw):
+            # Loop filter coefficients (proportional + integral)
+            denom = 1 + 2 * 0.707 * bw + bw ** 2
+            alpha = 4 * 0.707 * bw / denom
+            beta = 4 * bw ** 2 / denom
+
+            phase = 0.0
+            freq = 0.0
+            out = np.zeros(len(samples), dtype=np.complex64)
+
+            for i in range(len(samples)):
+                out[i] = samples[i] * np.exp(-1j * phase)
+                error = np.real(out[i]) * np.imag(out[i])  # BPSK phase error
+                freq += beta * error
+                phase += freq + alpha * error
+
+            return out
+
+        self.blocks.append(DSPBlock("costas_bpsk", _costas))
+        return self
+
+    def add_gardner_ted(self, sps: int = 4) -> "Pipeline":
+        """
+        Add Gardner Timing Error Detector for symbol synchronization.
+        sps: samples per symbol
+        """
+        def _gardner(samples, sps=sps):
+            symbols = []
+            mu = 0.0  # fractional timing offset
+            gain = 0.05
+            idx = sps
+
+            while idx < len(samples) - sps:
+                i = int(idx)
+                sym = samples[i]
+                symbols.append(sym)
+
+                # Gardner TED: e = Re{(y[n] - y[n-1]) * conj(y[n-0.5])}
+                mid_idx = int(idx - sps // 2)
+                prev_idx = int(idx - sps)
+                if prev_idx >= 0 and mid_idx >= 0:
+                    error = np.real(
+                        (samples[i] - samples[prev_idx]) * np.conj(samples[mid_idx])
+                    )
+                    mu = gain * error
+                idx += sps + mu
+
+            return np.array(symbols, dtype=np.complex64)
+
+        self.blocks.append(DSPBlock("gardner_ted", _gardner))
+        return self
+
     def add_resample(self, output_rate: float) -> "Pipeline":
         """Add rational resampler."""
         from scipy.signal import resample_poly
@@ -112,5 +175,6 @@ class Pipeline:
 
     def info(self) -> str:
         """Return pipeline description."""
-        blocks_str = " → ".join(b.name for b in self.blocks)
+        blocks_str = " -> ".join(b.name for b in self.blocks)
         return f"Pipeline [{blocks_str}] | out_rate={self._current_rate/1e3:.1f}kSPS"
+

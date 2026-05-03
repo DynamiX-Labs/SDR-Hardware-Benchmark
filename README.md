@@ -20,55 +20,83 @@ The DynamiX Labs suite consists of four interconnected repositories that form a 
 
 ```mermaid
 flowchart TB
-    %% Styling Directives
-    classDef hardware fill:#1f2937,stroke:#60a5fa,stroke-width:2px,color:#fff
-    classDef tracking fill:#065f46,stroke:#34d399,stroke-width:2px,color:#fff
-    classDef dsp fill:#1e3a8a,stroke:#93c5fd,stroke-width:2px,color:#fff
-    classDef telemetry fill:#4c1d95,stroke:#c4b5fd,stroke-width:2px,color:#fff
-    classDef database fill:#78350f,stroke:#fbbf24,stroke-width:2px,color:#fff
+    %% Core Styling Directives
+    classDef hardware fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#e2e8f0,stroke-dasharray: 5 5
+    classDef tracking fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#e2e8f0
+    classDef dsp fill:#1e3a8a,stroke:#60a5fa,stroke-width:2px,color:#e2e8f0
+    classDef telemetry fill:#312e81,stroke:#a78bfa,stroke-width:2px,color:#e2e8f0
+    classDef ai fill:#4a044e,stroke:#f472b6,stroke-width:2px,color:#e2e8f0
+    classDef database fill:#451a03,stroke:#fbbf24,stroke-width:2px,color:#e2e8f0
+    classDef external fill:#171717,stroke:#a3a3a3,stroke-width:2px,color:#d4d4d4
 
-    subgraph RF_Layer [RF Frontend Layer]
-        HW["fa:fa-broadcast-tower SDR Hardware<br>(RTL-SDR / HackRF / USRP)"]:::hardware
-        BM("fa:fa-tachometer-alt SDR-Hardware-Benchmark<br>(DSP Profiling & Verification)"):::hardware
-        COH("fa:fa-layer-group Coherent Combiner<br>(Ring Buffer & Synchronization)"):::hardware
+    %% External Systems
+    subgraph External_Network [Global & Space Interfaces]
+        direction LR
+        SAT((fa:fa-satellite Low Earth Orbit<br>Satellites)):::external
+        TLE[("fa:fa-cloud CelesTrak / Space-Track<br>REST API (HTTPS)")]:::database
+        FED_NET(("fa:fa-network-wired DynamiX Federation<br>Decentralized Nodes")):::external
+    end
+
+    %% RF Frontend
+    subgraph RF_Layer [L0: RF Frontend & Digitization]
+        direction TB
+        ANT("fa:fa-satellite-dish Az/El Yagi Array<br>(VHF/UHF/L-Band)"):::hardware
+        LNA("fa:fa-bolt Low Noise Amplifier<br>(NF < 0.5dB)"):::hardware
+        HW["fa:fa-microchip SDR Digitizer<br>(RTL-SDR / HackRF / USRP)"]:::hardware
+        BM("fa:fa-stopwatch Hardware Benchmark<br>Zero-Copy Memory Access"):::hardware
+        COH("fa:fa-layer-group Coherent Combiner<br>Ring Buffer (ZMQ IPC)"):::hardware
         
-        HW ==>|Raw IQ| BM
-        BM ==>|Filtered IQ| COH
+        ANT -- RF Analog --> LNA
+        LNA -- Amplified RF --> HW
+        HW == "Complex64 IQ (USB 3.0)" ==> BM
+        BM == "Stream Filter" ==> COH
     end
 
-    subgraph Auto_Tracking [Autonomous Tracking Engine]
-        TLE[("fa:fa-database CelesTrak TLE<br>Orbit Ephemeris")]:::database
-        DT["fa:fa-satellite Doppler-Auto-Tracker<br>(SGP4 / EMA Filter)"]:::tracking
-        ANT("fa:fa-crosshairs Antenna Rotator<br>(Hamlib Az/El Control)"):::tracking
+    %% Tracking Engine
+    subgraph Auto_Tracking [L1: Autonomous Pass Engine]
+        direction TB
+        DT["fa:fa-compass Doppler-Auto-Tracker<br>Skyfield / SGP4 Predictor"]:::tracking
+        PID["fa:fa-cogs PID Rotator Controller<br>(Hamlib Protocol)"]:::tracking
+        EMA["fa:fa-wave-square EMA Doppler Filter<br>Continuous Tuning"]:::tracking
 
-        TLE -.->|Update| DT
-        DT ==>|Closed-Loop Tuning| HW
-        DT ==>|Rotator Commands| ANT
+        DT -->|Target Vector| PID
+        DT -->|Shift Hz| EMA
     end
 
-    subgraph DSP_Layer [DSP & Demodulation Pipeline]
-        SU["fa:fa-microchip SatSDR-Universal<br>(Multi-Band Extractor)"]:::dsp
-        SPEC["fa:fa-wave-square Spectral Intelligence<br>(Welch PSD / Cyclostationary)"]:::dsp
-        SYNC["fa:fa-sync Gardner TED Sync<br>& Costas Carrier Recovery"]:::dsp
-        FEC["fa:fa-random FEC Decoder<br>(Viterbi / Reed-Solomon)"]:::dsp
+    %% DSP Pipeline
+    subgraph DSP_Layer [L2: Digital Signal Processing]
+        direction TB
+        SU["fa:fa-filter SatSDR-Universal<br>Multi-Band Channelizer"]:::dsp
+        SPEC["fa:fa-chart-bar Spectral Engine<br>Welch PSD & Auto-Detect"]:::dsp
+        SYNC["fa:fa-sync Carrier/Symbol Sync<br>Costas Loop & Gardner TED"]:::dsp
+        FEC["fa:fa-random FEC Decoder<br>Viterbi / Reed-Solomon"]:::dsp
 
-        COH ==>|Multi-Band IQ| SU
-        SU ==>|SOI Detection| SPEC
-        SPEC ==>|Modulation Guess| SYNC
-        SYNC ==>|Soft Symbols| FEC
+        COH == "Multi-Band IQ (20 MSPS)" ==> SU
+        SU == "Isolated Baseband" ==> SPEC
+        SPEC == "Modulation Class" ==> SYNC
+        SYNC == "Soft Symbols" ==> FEC
     end
 
-    subgraph Telemetry_Layer [Aerospace Telemetry & Security]
-        CTD["fa:fa-shield-alt CubeSat-Telemetry-Decoder<br>(Core Framework)"]:::telemetry
-        CRYPTO["fa:fa-key XTEA Decryption<br>& CSP Plausibility"]:::telemetry
-        ANOMALY["fa:fa-brain AI Anomaly Detection<br>(Isolation Forest / Thermal)"]:::telemetry
-        FED["fa:fa-globe Global PKI Federation<br>(ECDSA SECP256R1 Node)"]:::telemetry
+    %% Telemetry & Security
+    subgraph Telemetry_Layer [L3: Telemetry, AI, & Security]
+        direction TB
+        CTD["fa:fa-shield-alt CubeSat-Telemetry-Decoder<br>Deframer (Sync Word)"]:::telemetry
+        CRYPTO["fa:fa-key Cryptography Engine<br>XTEA Decryption & CSP"]:::telemetry
+        ANOMALY["fa:fa-brain AI Anomaly Detection<br>Isolation Forest (TensorFlow)"]:::ai
+        PKI["fa:fa-lock ECDSA PKI Signer<br>SECP256R1 Private Key"]:::telemetry
 
-        FEC ==>|Raw Frames| CTD
-        CTD ==>|Payload Validation| CRYPTO
-        CRYPTO ==>|Sanitized Telemetry| ANOMALY
-        CRYPTO ==>|Signed Packets| FED
+        FEC == "Raw Bitstream" ==> CTD
+        CTD == "KISS / CSP Frames" ==> CRYPTO
+        CRYPTO == "Parsed Telemetry" ==> ANOMALY
+        CRYPTO == "Verified Payload" ==> PKI
     end
+
+    %% Cross-Layer Integrations
+    SAT -. "137MHz - 2.4GHz" .-> ANT
+    TLE -. "Daily Sync" .-> DT
+    EMA == "Freq Offset" ==> HW
+    PID == "Az/El Serial" ==> ANT
+    PKI == "Signed JSON / ZMQ" ==> FED_NET
 ```
 
 ---

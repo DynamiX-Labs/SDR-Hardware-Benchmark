@@ -1,27 +1,27 @@
 # Core DSP
-numpy>=1.24
-scipy>=1.10
-matplotlib>=3.7
+numpy>=2.4.4
+scipy>=1.17.1
+matplotlib>=3.10.9
 
 # SDR Hardware
-pyrtlsdr>=0.3.0
+pyrtlsdr>=0.4.0
 # SoapySDR  # install via system package: apt install python3-soapysdr
 
 # Satellite protocols
-pyaudio>=0.2.13      # audio output for APT
-Pillow>=9.0          # image output
+pyaudio>=0.2.14      # audio output for APT
+Pillow>=12.2.0          # image output
 
 # Orbital Mechanics & Pass Scheduling
-skyfield>=1.46
-sgp4>=2.23
+skyfield>=1.54
+sgp4>=2.25
 
 # Config & CLI
-pyyaml>=6.0
-click>=8.1
+pyyaml>=6.0.3
+click>=8.3.3
 
 # Testing
-pytest>=7.4
-pytest-cov>=4.1
+pytest>=9.0.3
+pytest-cov>=7.1.0
 
 # Optional: GNU Radio Python bindings
 # gnuradio  # install via: apt install gnuradio

@@ -3,6 +3,6 @@ scipy>=1.10
 sgp4>=2.21
 requests>=2.31
 pyyaml>=6.0
-click>=8.1
+click>=8.3.3
 pyserial>=3.5     # Hamlib serial rotator
 pytest>=7.4

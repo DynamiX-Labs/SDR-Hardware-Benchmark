@@ -55,7 +55,7 @@ class AnomalyDetector:
             return {"anomaly": False, "reason": "calibrating", "learning_progress": samples_count / self.calibration_window}
 
         # Train Isolation Forest if we just finished calibrating
-        if self.iso_forest and not self.model_trained and samples_count >= self.calibration_window:
+        if self.iso_forest is not None and not self.model_trained and samples_count >= self.calibration_window:
             X_train = np.array(self.battery_voltage_history).reshape(-1, 1)
             self.iso_forest.fit(X_train)
             self.model_trained = True

@@ -1,5 +1,5 @@
 numpy>=1.24
-scipy>=1.10
+scipy>=1.17.1
 psutil>=5.9       # CPU/memory monitoring
 pyrtlsdr>=0.3.0
 pyyaml>=6.0

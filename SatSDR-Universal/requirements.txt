@@ -18,6 +18,7 @@ sgp4>=2.23
 # Config & CLI
 pyyaml>=6.0
 click>=8.1
+colorlog>=6.7
 
 # Testing
 pytest>=7.4

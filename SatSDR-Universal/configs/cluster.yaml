@@ -1,0 +1,28 @@
+# Distributed Decoder Cluster Configuration
+# DynamiX Labs — SatSDR-Universal | Phase 3
+
+broker:
+  frontend_addr: "tcp://*:5555"      # Client job submission
+  backend_addr: "tcp://*:5556"       # Worker connections
+  monitor_addr: "tcp://*:5557"       # Status event PUB socket
+  heartbeat_interval: 5.0            # Seconds between heartbeat checks
+  worker_timeout: 30.0               # Seconds before a worker is considered dead
+
+worker:
+  broker_addr: "tcp://localhost:5556" # Broker backend address
+  max_concurrent: 2                  # Max simultaneous decode jobs
+  capabilities: []                   # Empty = accept all decoder types
+  heartbeat_interval: 5.0            # Seconds between heartbeat messages
+
+gpu:
+  enabled: true                      # Enable GPU acceleration (auto-fallback if unavailable)
+  device_id: 0                       # CUDA device ordinal
+  pinned_memory: true                # Use CUDA pinned memory for faster transfers
+
+streaming:
+  host: "0.0.0.0"
+  port: 8765
+  max_fps: 30                        # Maximum spectral frame rate
+  fft_size: 4096                     # FFT bins for PSD
+  waterfall_depth: 100               # Rows in waterfall buffer
+  auth_token: null                   # Set to enable client authentication

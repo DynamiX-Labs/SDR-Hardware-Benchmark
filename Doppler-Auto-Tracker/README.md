@@ -115,4 +115,4 @@ For NOAA-19 at 137.1 MHz:
 
 ## 📄 License
 
-MIT License — © 2025 DynamiX Labs
+Apache License 2.0 — © 2025-2026 DynamiX Labs

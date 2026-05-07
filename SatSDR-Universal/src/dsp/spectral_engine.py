@@ -5,7 +5,10 @@ Automated signal detection, noise floor estimation, and modulation classificatio
 import numpy as np
 from scipy import signal as sig
 import logging
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .gpu_backend import GPUBackend
 
 log = logging.getLogger("satsdr.spectral")
 
@@ -16,22 +19,31 @@ class SpectralEngine:
     and classify signals of interest without manual frequency input.
     """
 
-    def __init__(self, sample_rate: float, fft_size: int = 4096, noise_alpha: float = 0.05):
+    def __init__(self, sample_rate: float, fft_size: int = 4096,
+                 noise_alpha: float = 0.05,
+                 gpu_backend: Optional["GPUBackend"] = None):
         self.sample_rate = sample_rate
         self.fft_size = fft_size
         self.noise_alpha = noise_alpha
         self.noise_floor = None  # Adaptive noise floor (dB)
+        self.gpu = gpu_backend
 
     def estimate_noise_floor(self, iq_samples: np.ndarray) -> np.ndarray:
         """
         Estimate the spectral noise floor using Welch's method with
         an exponential moving average for adaptive tracking.
+        GPU-accelerated when GPUBackend is available.
         """
-        freqs, psd = sig.welch(
-            iq_samples, fs=self.sample_rate, nperseg=self.fft_size,
-            return_onesided=False, scaling='density'
-        )
-        psd_db = 10 * np.log10(np.fft.fftshift(psd) + 1e-20)
+        if self.gpu is not None and self.gpu.gpu_available:
+            _freqs, psd_db = self.gpu.welch_psd(
+                iq_samples, fs=self.sample_rate, nperseg=self.fft_size
+            )
+        else:
+            freqs, psd = sig.welch(
+                iq_samples, fs=self.sample_rate, nperseg=self.fft_size,
+                return_onesided=False, scaling='density'
+            )
+            psd_db = 10 * np.log10(np.fft.fftshift(psd) + 1e-20)
 
         if self.noise_floor is None:
             self.noise_floor = psd_db

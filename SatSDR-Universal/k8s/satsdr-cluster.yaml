@@ -1,0 +1,395 @@
+# SatSDR-Universal — Kubernetes Deployment Manifests
+# Decoder autoscaling via HPA + KEDA custom metrics
+# DynamiX Labs | Phase 4
+#
+# API-only deployment. No web frontend is included.
+# All interaction is via CLI, ZeroMQ sockets, and WebSocket API.
+#
+# Usage:
+#   kubectl apply -f k8s/
+#   kubectl get pods -n satsdr
+#   kubectl logs -f deployment/satsdr-broker -n satsdr
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: satsdr
+  labels:
+    app.kubernetes.io/part-of: satsdr-universal
+
+---
+# ─────────────────────────────────────────────────────────
+# ConfigMap — Shared cluster configuration
+# ─────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: satsdr-config
+  namespace: satsdr
+data:
+  BROKER_FRONTEND: "tcp://*:5555"
+  BROKER_BACKEND: "tcp://*:5556"
+  BROKER_MONITOR: "tcp://*:5557"
+  WORKER_BROKER_ADDR: "tcp://satsdr-broker:5556"
+  SPECTRUM_WS_PORT: "8765"
+  FEDERATION_HUB_ADDR: "tcp://*:6000"
+  FEDERATION_PUB_ADDR: "tcp://*:6001"
+  MAX_FPS: "30"
+  FFT_SIZE: "4096"
+
+---
+# ─────────────────────────────────────────────────────────
+# Decoder Broker — Deployment + Service
+# ─────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: satsdr-broker
+  namespace: satsdr
+  labels:
+    app: satsdr
+    component: broker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: satsdr
+      component: broker
+  template:
+    metadata:
+      labels:
+        app: satsdr
+        component: broker
+    spec:
+      containers:
+        - name: broker
+          image: dynamixlabs/satsdr-universal:latest
+          command: ["python", "-m", "src.main", "broker"]
+          args:
+            - "--frontend"
+            - "$(BROKER_FRONTEND)"
+            - "--backend"
+            - "$(BROKER_BACKEND)"
+            - "--monitor"
+            - "$(BROKER_MONITOR)"
+          envFrom:
+            - configMapRef:
+                name: satsdr-config
+          ports:
+            - name: frontend
+              containerPort: 5555
+              protocol: TCP
+            - name: backend
+              containerPort: 5556
+              protocol: TCP
+            - name: monitor
+              containerPort: 5557
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          livenessProbe:
+            tcpSocket:
+              port: 5555
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            tcpSocket:
+              port: 5556
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: satsdr-broker
+  namespace: satsdr
+  labels:
+    app: satsdr
+    component: broker
+spec:
+  selector:
+    app: satsdr
+    component: broker
+  ports:
+    - name: frontend
+      port: 5555
+      targetPort: 5555
+    - name: backend
+      port: 5556
+      targetPort: 5556
+    - name: monitor
+      port: 5557
+      targetPort: 5557
+
+---
+# ─────────────────────────────────────────────────────────
+# Decoder Worker — Deployment + HPA Autoscaler
+# ─────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: satsdr-worker
+  namespace: satsdr
+  labels:
+    app: satsdr
+    component: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: satsdr
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: satsdr
+        component: worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      containers:
+        - name: worker
+          image: dynamixlabs/satsdr-universal:latest
+          command: ["python", "-m", "src.main", "worker"]
+          args:
+            - "--broker-addr"
+            - "$(WORKER_BROKER_ADDR)"
+            - "--concurrency"
+            - "4"
+            - "--no-gpu"
+          envFrom:
+            - configMapRef:
+                name: satsdr-config
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+
+---
+# HPA — scale workers 2-16 based on CPU utilisation
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: satsdr-worker-hpa
+  namespace: satsdr
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: satsdr-worker
+  minReplicas: 2
+  maxReplicas: 16
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 4
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 120
+
+---
+# ─────────────────────────────────────────────────────────
+# GPU Worker — Separate deployment for CUDA-capable nodes
+# ─────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: satsdr-worker-gpu
+  namespace: satsdr
+  labels:
+    app: satsdr
+    component: worker-gpu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: satsdr
+      component: worker-gpu
+  template:
+    metadata:
+      labels:
+        app: satsdr
+        component: worker-gpu
+    spec:
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: worker-gpu
+          image: dynamixlabs/satsdr-universal:cuda
+          command: ["python", "-m", "src.main", "worker"]
+          args:
+            - "--broker-addr"
+            - "$(WORKER_BROKER_ADDR)"
+            - "--gpu"
+            - "--concurrency"
+            - "2"
+          envFrom:
+            - configMapRef:
+                name: satsdr-config
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4000m"
+              memory: "8Gi"
+              nvidia.com/gpu: "1"
+
+---
+# ─────────────────────────────────────────────────────────
+# Spectrum Streaming Server — WebSocket API
+# ─────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: satsdr-stream
+  namespace: satsdr
+  labels:
+    app: satsdr
+    component: stream
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: satsdr
+      component: stream
+  template:
+    metadata:
+      labels:
+        app: satsdr
+        component: stream
+    spec:
+      containers:
+        - name: stream
+          image: dynamixlabs/satsdr-universal:latest
+          command: ["python", "-m", "src.main", "stream"]
+          args:
+            - "--port"
+            - "$(SPECTRUM_WS_PORT)"
+            - "--fps"
+            - "$(MAX_FPS)"
+            - "--fft-size"
+            - "$(FFT_SIZE)"
+          envFrom:
+            - configMapRef:
+                name: satsdr-config
+          ports:
+            - name: websocket
+              containerPort: 8765
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: satsdr-stream
+  namespace: satsdr
+  labels:
+    app: satsdr
+    component: stream
+spec:
+  selector:
+    app: satsdr
+    component: stream
+  ports:
+    - name: websocket
+      port: 8765
+      targetPort: 8765
+
+---
+# ─────────────────────────────────────────────────────────
+# Federation Hub
+# ─────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: satsdr-federation-hub
+  namespace: satsdr
+  labels:
+    app: satsdr
+    component: federation-hub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: satsdr
+      component: federation-hub
+  template:
+    metadata:
+      labels:
+        app: satsdr
+        component: federation-hub
+    spec:
+      containers:
+        - name: federation
+          image: dynamixlabs/satsdr-universal:latest
+          command: ["python", "-m", "src.main", "federation-hub"]
+          envFrom:
+            - configMapRef:
+                name: satsdr-config
+          ports:
+            - name: router
+              containerPort: 6000
+            - name: pub
+              containerPort: 6001
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: satsdr-federation-hub
+  namespace: satsdr
+spec:
+  selector:
+    app: satsdr
+    component: federation-hub
+  ports:
+    - name: router
+      port: 6000
+      targetPort: 6000
+    - name: pub
+      port: 6001
+      targetPort: 6001

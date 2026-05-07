@@ -158,5 +158,5 @@ We are currently executing a rigorous three-phase architectural upgrade:
 
 ## License
 
-MIT License — Copyright 2026 DynamiX Labs
+Apache License 2.0 — Copyright 2026 DynamiX Labs
 

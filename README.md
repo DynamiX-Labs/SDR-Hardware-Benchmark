@@ -29,6 +29,9 @@ flowchart TB
     classDef ai fill:#4a044e,stroke:#f472b6,stroke-width:2px,color:#e2e8f0
     classDef database fill:#451a03,stroke:#fbbf24,stroke-width:2px,color:#e2e8f0
     classDef external fill:#171717,stroke:#a3a3a3,stroke-width:2px,color:#d4d4d4
+    classDef gpu fill:#1a1a2e,stroke:#e94560,stroke-width:2px,color:#eee
+    classDef ws fill:#16213e,stroke:#0f3460,stroke-width:2px,color:#eee
+    classDef zmq fill:#0a3d62,stroke:#38ada9,stroke-width:2px,color:#eee
 
     %% External Systems
     subgraph External_Network [Global & Space Interfaces]
@@ -64,15 +67,18 @@ flowchart TB
         DT -->|Shift Hz| EMA
     end
 
-    %% DSP Pipeline
-    subgraph DSP_Layer [L2: Digital Signal Processing]
+    %% GPU-Accelerated DSP Pipeline (Phase 3)
+    subgraph DSP_Layer [L2: GPU-Accelerated Digital Signal Processing]
         direction TB
+        GPU["fa:fa-bolt GPU Backend<br>CuPy/CUDA FFT Offload"]:::gpu
         SU["fa:fa-filter SatSDR-Universal<br>Multi-Band Channelizer"]:::dsp
-        SPEC["fa:fa-chart-bar Spectral Engine<br>Welch PSD & Auto-Detect"]:::dsp
+        SPEC["fa:fa-chart-bar Spectral Engine<br>GPU Welch PSD & Auto-Detect"]:::dsp
         SYNC["fa:fa-sync Carrier/Symbol Sync<br>Costas Loop & Gardner TED"]:::dsp
         FEC["fa:fa-random FEC Decoder<br>Viterbi / Reed-Solomon"]:::dsp
 
         COH == "Multi-Band IQ (20 MSPS)" ==> SU
+        GPU -.->|"Offloaded FFT/FIR"| SU
+        GPU -.->|"Offloaded PSD"| SPEC
         SU == "Isolated Baseband" ==> SPEC
         SPEC == "Modulation Class" ==> SYNC
         SYNC == "Soft Symbols" ==> FEC
@@ -90,6 +96,36 @@ flowchart TB
         CTD == "KISS / CSP Frames" ==> CRYPTO
         CRYPTO == "Parsed Telemetry" ==> ANOMALY
         CRYPTO == "Verified Payload" ==> PKI
+    end
+
+    %% WebSocket Streaming (Phase 3)
+    subgraph Streaming_Layer [L4: WebSocket Live Spectrum Streaming]
+        direction LR
+        WSSRV["fa:fa-broadcast-tower Spectrum Server<br>asyncio + websockets (port 8765)"]:::ws
+        PROTO["fa:fa-file-code Stream Protocol<br>MessagePack Binary Frames"]:::ws
+        BROWSER["fa:fa-desktop Browser Dashboard"]:::ws
+        REMOTE["fa:fa-globe Remote Monitor"]:::ws
+
+        SPEC -.->|"PSD + Detections"| WSSRV
+        WSSRV --> PROTO
+        PROTO --> BROWSER
+        PROTO --> REMOTE
+    end
+
+    %% Distributed Decoder Cluster (Phase 3)
+    subgraph Cluster_Layer [L5: ZeroMQ Distributed Decoder Cluster]
+        direction LR
+        BROKER["fa:fa-server Decoder Broker<br>ROUTER/DEALER (5555/5556)"]:::zmq
+        W1["fa:fa-cog Worker 1<br>APT + ADS-B"]:::zmq
+        W2["fa:fa-cog Worker 2<br>AX.25 + LRPT"]:::zmq
+        WN["fa:fa-cog Worker N<br>GPU-Enabled"]:::zmq
+
+        FEC -.->|"Decode Jobs"| BROKER
+        BROKER -->|"Dispatch"| W1
+        BROKER -->|"Dispatch"| W2
+        BROKER -->|"Dispatch"| WN
+        W1 & W2 & WN -.->|"Results"| BROKER
+        BROKER -.->|"Aggregated"| WSSRV
     end
 
     %% Cross-Layer Integrations
@@ -176,5 +212,5 @@ Basic pipelines implemented, advanced modes in active development.
 ---
 
 <div align="center">
-  © 2026 DynamiX Labs — Released under the MIT License
+  © 2026 DynamiX Labs — Released under the Apache License 2.0
 </div>

@@ -91,4 +91,4 @@ python src/reports/compare.py results/pi5_rtlsdr.json results/x86_rtlsdr.json
 
 ## 📄 License
 
-MIT License — © 2025 DynamiX Labs
+Apache License 2.0 — © 2025-2026 DynamiX Labs

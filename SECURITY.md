@@ -18,7 +18,7 @@ We take the security of this aerospace suite very seriously. This policy covers:
 
 ## Reporting a Vulnerability
 
-We recommend reporting vulnerabilities privately via **security@dynamix-labs.org**. 
+We recommend reporting vulnerabilities privately via **cubedynamics.10@gmail.com**. 
 
 We aim to acknowledge reports within **72 hours** and provide a remediation plan or patch as soon as possible. Please do not open a public issue for critical security vulnerabilities, especially those related to cryptographic bypassing or ground-station network compromises.
 

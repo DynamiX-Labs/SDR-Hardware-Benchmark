@@ -2,22 +2,29 @@
 
 # DynamiX Labs — Satellite SDR Architecture
 
-**Advanced Open-Source Satellite Communication & DSP Framework**
+**Open-Source Satellite Communication & Signal Processing Toolkit**
 
 [![DynamiX Labs](https://img.shields.io/badge/DynamiX-Labs-blueviolet?style=for-the-badge)](https://github.com/DynamiX-Labs)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python)](https://python.org)
 [![GNU Radio](https://img.shields.io/badge/GNU%20Radio-3.10+-orange?style=for-the-badge)](https://gnuradio.org)
 
-*A comprehensive suite of aerospace-grade signal processing tools, autonomous tracking engines, and cryptography-hardened telemetry decoders built for embedded systems engineers and RF researchers.*
-
-**Project Goals:** Intended for student labs, hobbyist ground stations, and smallsat teams to prototype end-to-end links.
 </div>
+
+## What is this?
+
+DynamiX Labs started out as a weekend experiment — just trying to pull down a NOAA weather satellite image with a cheap RTL-SDR dongle and a homemade dipole antenna taped to a window. It worked (barely), and that one blurry APT image kicked off everything you see here.
+
+The idea was simple: build an end-to-end ground station pipeline that could go from raw RF to decoded telemetry, without needing a $50k setup or a PhD to get it running. Something a college student could plug in and start receiving real satellite data on day one.
+
+Over time it grew into four separate tools that all talk to each other — an SDR channelizer, a Doppler tracker, a telemetry decoder, and a hardware benchmark suite. This repo ties them all together under one roof.
+
+> **Who is this for?** Students setting up their first ground station, amateur radio operators messing with satellite comms, CubeSat teams who need a decoder they can actually modify, or anyone who thinks pulling data out of thin air is cool (it is).
 
 ---
 
-## Master Architecture
+## How it all fits together
 
-The DynamiX Labs suite consists of four interconnected repositories that form a complete, autonomous satellite ground station pipeline. This repository serves as the umbrella for the four subsystems plus benchmarking, acting as a cohesive platform rather than just a single tool. The architecture is designed to handle everything from RF spectrum digitization to secure telemetry federation.
+Here's the big picture. The signal comes off the antenna, gets digitized by whatever SDR hardware you have, passes through the DSP pipeline, and comes out the other end as clean decoded packets. Each layer is its own module so you can swap things in and out without breaking the rest.
 
 ```mermaid
 flowchart TB
@@ -67,8 +74,8 @@ flowchart TB
         DT -->|Shift Hz| EMA
     end
 
-    %% GPU-Accelerated DSP Pipeline (Phase 3)
-    subgraph DSP_Layer [L2: GPU-Accelerated Digital Signal Processing]
+    %% GPU-Accelerated DSP Pipeline
+    subgraph DSP_Layer [L2: GPU-Accelerated DSP]
         direction TB
         GPU["fa:fa-bolt GPU Backend<br>CuPy/CUDA FFT Offload"]:::gpu
         SU["fa:fa-filter SatSDR-Universal<br>Multi-Band Channelizer"]:::dsp
@@ -98,7 +105,7 @@ flowchart TB
         CRYPTO == "Verified Payload" ==> PKI
     end
 
-    %% WebSocket Streaming (Phase 3)
+    %% WebSocket Streaming
     subgraph Streaming_Layer [L4: WebSocket Live Spectrum Streaming]
         direction LR
         WSSRV["fa:fa-broadcast-tower Spectrum Server<br>asyncio + websockets (port 8765)"]:::ws
@@ -112,7 +119,7 @@ flowchart TB
         PROTO --> REMOTE
     end
 
-    %% Distributed Decoder Cluster (Phase 3)
+    %% Distributed Decoder Cluster
     subgraph Cluster_Layer [L5: ZeroMQ Distributed Decoder Cluster]
         direction LR
         BROKER["fa:fa-server Decoder Broker<br>ROUTER/DEALER (5555/5556)"]:::zmq
@@ -138,79 +145,106 @@ flowchart TB
 
 ---
 
-## Core Repositories
+## The four pieces
 
-| Project Subsystem | Engineering Purpose | Status |
+Each subsystem lives in its own directory and works independently, but they're designed to plug into each other when you need the full pipeline.
+
+| Project | What it does | Status |
 | :--- | :--- | :--- |
-| **[SatSDR-Universal](./SatSDR-Universal)** | A hardware-agnostic, spectral-intelligence-driven framework for decoding NOAA APT, ADS-B, CubeSat beacons, GPS, and more. Features autonomous pass scheduling and multi-SDR coherent combining. | Active |
-| **[CubeSat-Telemetry-Decoder](./CubeSat-Telemetry-Decoder)** | An aerospace-grade AX.25 / CCSDS / CSP ground station decoder. Includes real-time Doppler EMA filtering, ECDSA PKI federation, and machine learning anomaly detection. | Active |
-| **[Doppler-Auto-Tracker](./Doppler-Auto-Tracker)** | TLE-based continuous Doppler correction and closed-loop SDR tuning engine, integrated with Hamlib-compatible antenna rotator control. | Active |
-| **[SDR-Hardware-Benchmark](./SDR-Hardware-Benchmark)** | Comprehensive performance benchmarking and DSP profiling tools for hardware including RTL-SDR, HackRF, PlutoSDR, and USRP series. | Active |
+| **[SatSDR-Universal](./SatSDR-Universal)** | The main SDR engine. Takes raw IQ samples and figures out what signal you're looking at — NOAA weather, ADS-B aircraft, CubeSat beacons, whatever. It handles channelization, spectral detection, and can juggle multiple SDR dongles at once if you've got them. | Active |
+| **[CubeSat-Telemetry-Decoder](./CubeSat-Telemetry-Decoder)** | Takes demodulated bits and turns them into actual telemetry packets. Handles AX.25, CCSDS, and CSP framing. Also does XTEA decryption if the satellite uses it, and has an anomaly detector that flags weird readings so you're not staring at logs all day. | Active |
+| **[Doppler-Auto-Tracker](./Doppler-Auto-Tracker)** | Satellites move fast — a LEO pass might shift your signal by ±5 kHz. This tool grabs fresh TLE data, predicts where the bird will be, and continuously nudges your SDR frequency to stay locked on. Also drives antenna rotators via Hamlib if you've got a motorized setup. | Active |
+| **[SDR-Hardware-Benchmark](./SDR-Hardware-Benchmark)** | Before you commit to a particular SDR dongle, you probably want to know how it actually performs. This runs throughput tests, measures dropped samples, checks CPU load, and compares SNR across different devices so you can pick the right one for your use case. | Active |
 
-*Note: Benchmark outputs include JSON/CSV reports of throughput, CPU load, SNR, and EVM per device; see `SDR-Hardware-Benchmark/README.md` for running example tests.*
+The benchmark tool spits out JSON and CSV reports — throughput, CPU load, SNR, EVM, all of it. Check `SDR-Hardware-Benchmark/README.md` for example runs.
+
 ---
 
-## Formal Verification & Experimental Results
+## Does it actually work? — Results from real passes
 
-The DynamiX Labs architecture has undergone rigorous testing against live satellite passes. The following results demonstrate the system's ability to digitize, isolate, and dissect complex RF environments into actionable aerospace telemetry.
+We've tested this against live satellite passes. Not simulations, not recorded IQ files (well, those too for regression), but actual signals coming off the antenna. Here's what we got.
 
-### Result I: Wideband Spectral Isolation
-The spectral intelligence engine automatically identifies and isolates signals of interest (SOI) amidst high-noise RF environments. The waterfall capture below demonstrates real-time baseband filtering and decimation applied to a raw SDR stream.
+### Wideband spectral isolation
+The first challenge is just finding the signal. The spectrum is noisy — other radios, thermal noise, interference from that one LED bulb in the hallway. The spectral engine scans the band, identifies peaks above the noise floor, and isolates each one for decoding.
+
 <div align="center">
-  <img src="docs/images/sdr_waterfall.jpg" width="800" alt="Wideband SDR Waterfall Result">
+  <img src="docs/sdr_waterfall.jpg" width="800" alt="SDR waterfall showing isolated signal">
 </div>
 
-### Result II: Baseband Demodulation Architecture
-For coherent phase tracking, the DSP pipeline utilizes 2nd-order Costas Loops and Gardner Timing Error Detectors. The flowgraph output below illustrates the software-defined translation from raw complex samples to soft-symbol output.
+### Baseband demodulation
+Once you've got the signal isolated, you need to demodulate it. We use a Costas loop for carrier recovery and a Gardner timing error detector for symbol sync. It's textbook DSP, but getting it stable on a noisy live signal took quite a bit of tuning.
+
 <div align="center">
-  <img src="docs/images/grc_flowgraph.jpg" width="800" alt="GNU Radio Companion Decoder Flowgraph Result">
+  <img src="docs/grc_flowgraph.jpg" width="800" alt="GNU Radio flowgraph for decoding">
 </div>
 
-### Result III: Network-Layer Telemetry Dissection
-Post-demodulation, raw frames are validated against the CubeSat Space Protocol (CSP). The capture below shows successful bit-alignment, CRC verification, and XTEA decryption yielding structured network packets ready for PKI federation.
+### Telemetry decoding
+After demodulation, the raw bits go through the frame synchronizer. It finds the sync word, strips the framing, runs the CRC check, decrypts if needed, and hands you a clean CSP packet. This screenshot shows the decoded packets in Wireshark — proper structure, valid checksums, the works.
+
 <div align="center">
-  <img src="docs/images/packet_decode.png" width="800" alt="Wireshark Packet Decode Result">
+  <img src="docs/packet_decode.png" width="800" alt="Decoded telemetry packets in Wireshark">
 </div>
 
-### Result IV: Narrowband Carrier Detection
-Using Welch's PSD estimation and adaptive noise floor tracking, the system achieves sub-hertz accuracy on carrier peaks. This allows the Doppler auto-tracker to continuously lock onto drifting LEO satellites without manual frequency intervention.
+### Narrowband carrier detection
+For Doppler tracking, you need to know exactly where the carrier peak is. We use Welch's PSD estimation with adaptive noise floor tracking to get sub-hertz accuracy, which is enough to keep the auto-tracker locked on even during fast LEO passes.
+
 <div align="center">
-  <img src="docs/images/spectrum_peak.jpg" width="800" alt="Spectrum Analyzer Peak Result">
+  <img src="docs/spectrum_peak.jpg" width="800" alt="Spectrum analyzer showing carrier peak">
 </div>
 
 ---
 
-## Hardware Support & Integration
+## Hardware we've tested with
 
-The frameworks within this repository are designed to be hardware-agnostic, utilizing `SoapySDR` to interface seamlessly with a wide range of platforms. Basic pipelines implemented, advanced modes in active development.
+Everything talks to the SDR through SoapySDR, so in theory any supported device should work. In practice, here's what we've actually tried and can vouch for:
 
-- **RTL-SDR v3 / v4** (VHF/UHF Weather, ADS-B)
-- **HackRF One** (Wideband scanning, Tx/Rx)
-- **ADALM-PLUTO** (L-band, Tx/Rx capable)
-- **USRP B200 / B210** (Full duplex, MIMO, HRPT)
-- **USRP X310** (High-performance research)
-- **LimeSDR Mini** (Multi-protocol)
+- **RTL-SDR v3 / v4** — cheapest option, great for getting started. Handles NOAA APT and ADS-B just fine.
+- **HackRF One** — wider bandwidth, can transmit too. Good for scanning large chunks of spectrum.
+- **ADALM-PLUTO** — does L-band and has Tx/Rx, handy for Inmarsat experiments.
+- **USRP B200 / B210** — this is where it gets serious. Full duplex, MIMO, enough bandwidth for HRPT.
+- **USRP X310** — research-grade. Overkill for most people, but if you've got access to one, it's beautiful.
+- **LimeSDR Mini** — decent middle ground, handles multiple protocols well.
 
----
-
-## Supported Protocols & Signals
-
-Basic pipelines implemented, advanced modes in active development.
-
-- **Weather**: NOAA APT (137 MHz), METEOR LRPT (137.1 MHz), NOAA HRPT
-- **Aviation**: ADS-B 1090ES, ACARS (129.125 MHz)
-- **Spacecraft**: CubeSat AX.25, CCSDS, CSP (CubeSat Space Protocol)
-- **Navigation & Comms**: GPS L1 C/A, Inmarsat (AERO/STD-C), Iridium
+If your SDR isn't on this list but works with SoapySDR, give it a try — it'll probably work.
 
 ---
 
-## Authors & Contributors
+## Signals & protocols
 
-- **[@ARYA-mgc](https://github.com/ARYA-mgc)** - *Lead Developer / DSP Engineer*
-- **[@vishal-r07](https://github.com/vishal-r07)** - *Contributor*
+Here's what the pipeline can currently decode (basic pipelines are working, some of the more exotic modes are still being built out):
+
+- **Weather satellites** — NOAA APT at 137 MHz, METEOR LRPT at 137.1 MHz, and NOAA HRPT for the higher-res stuff
+- **Aviation** — ADS-B on 1090 MHz (aircraft position/altitude), ACARS on 129.125 MHz (text messages from planes)
+- **Spacecraft** — CubeSat beacons using AX.25, CCSDS, or CSP framing
+- **Navigation & comms** — GPS L1 C/A (just acquisition for now), Inmarsat AERO/STD-C, and Iridium burst detection
+
+We're actively adding more. If there's a protocol you'd like to see supported, open an issue — or better yet, a PR.
+
+---
+
+## Running with Docker
+
+Don't want to install GNU Radio and a dozen system packages by hand? Fair enough. There's a Dockerfile in the `docker/` directory that sets up everything — Ubuntu 24.04, GNU Radio, SoapySDR, Hamlib, the whole stack.
+
+```bash
+cd docker
+docker build -t dynamix-labs .
+docker run -it --device=/dev/bus/usb dynamix-labs
+```
+
+You'll need to pass through your USB device so the container can talk to your SDR dongle.
+
+---
+
+## Who's building this
+
+- **[@ARYA-mgc](https://github.com/ARYA-mgc)** — started the project, does most of the DSP and architecture work
+- **[@vishal-r07](https://github.com/vishal-r07)** — contributor
+
+We'd love more people involved. Check out [CONTRIBUTING.md](./CONTRIBUTING.md) if you want to help, and [SECURITY.md](./SECURITY.md) if you find something that looks like a vulnerability (please report it privately).
 
 ---
 
 <div align="center">
-  © 2026 DynamiX Labs — Released under the Apache License 2.0
+  © 2026 DynamiX Labs — Apache License 2.0
 </div>

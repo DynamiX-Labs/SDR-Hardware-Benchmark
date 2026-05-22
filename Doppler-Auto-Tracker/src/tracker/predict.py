@@ -1,8 +1,4 @@
-"""
-Satellite Pass Predictor
-Computes AOS/LOS/Max-Elevation for upcoming satellite passes.
-DynamiX Labs
-"""
+"""Satellite pass predictor (AOS/LOS/Max-El)."""
 
 import math
 from datetime import datetime, timezone, timedelta
@@ -11,7 +7,7 @@ import logging
 
 log = logging.getLogger("doppler.predict")
 
-MIN_ELEVATION = 5.0  # degrees — minimum for a "visible" pass
+MIN_ELEVATION = 5.0  # Minimum elevation for a visible pass
 
 
 def _azel_from_tle(tle_line1: str, tle_line2: str,
@@ -24,18 +20,7 @@ def _azel_from_tle(tle_line1: str, tle_line2: str,
 
 
 class PassPredictor:
-    """
-    Predicts satellite passes visible from a ground station.
-
-    Usage:
-        predictor = PassPredictor(
-            obs_lat=13.0827, obs_lon=80.2707, obs_alt=6.0,
-            min_elevation=10.0
-        )
-        passes = predictor.predict(tle, hours_ahead=24)
-        for p in passes:
-            print(f"AOS: {p['aos']}  Max El: {p['max_el']:.1f}°  LOS: {p['los']}")
-    """
+    """Predicts satellite passes visible from a ground station."""
 
     def __init__(self, obs_lat: float, obs_lon: float, obs_alt: float = 0.0,
                  min_elevation: float = MIN_ELEVATION):
@@ -46,17 +31,7 @@ class PassPredictor:
 
     def predict(self, tle: dict, hours_ahead: float = 24.0,
                 time_step_s: float = 10.0) -> List[Dict]:
-        """
-        Find all passes within the next `hours_ahead` hours.
-
-        Args:
-            tle: dict with name, line1, line2
-            hours_ahead: How far ahead to predict
-            time_step_s: Time resolution (seconds)
-
-        Returns:
-            List of pass dicts with aos, los, max_el, max_el_time, duration_s
-        """
+        """Find all visible passes within the prediction window."""
         passes = []
         now = datetime.now(timezone.utc)
         end = now + timedelta(hours=hours_ahead)
@@ -80,7 +55,6 @@ class PassPredictor:
 
             if el >= self.min_elevation:
                 if not in_pass:
-                    # AOS (Acquisition of Signal)
                     in_pass = True
                     current_pass = {
                         "satellite": tle["name"],
@@ -99,7 +73,6 @@ class PassPredictor:
                         current_pass["max_el_az"] = az
             else:
                 if in_pass:
-                    # LOS (Loss of Signal)
                     in_pass = False
                     current_pass["los"] = dt
                     duration = (dt - current_pass["aos"]).total_seconds()
@@ -112,7 +85,7 @@ class PassPredictor:
         return passes
 
     def print_table(self, passes: List[Dict], station_name: str = ""):
-        """Pretty-print pass prediction table."""
+        """Print a clean table of upcoming passes."""
         if not passes:
             print("No passes found.")
             return

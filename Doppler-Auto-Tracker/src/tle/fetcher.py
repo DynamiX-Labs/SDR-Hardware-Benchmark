@@ -1,7 +1,4 @@
-"""
-TLE Fetcher — Downloads and caches Two-Line Elements from Celestrak / SpaceTrack
-DynamiX Labs
-"""
+"""Downloads and caches TLE data from CelesTrak."""
 
 import requests
 import yaml
@@ -30,15 +27,7 @@ CELESTRAK_TLE_URLS = {
 
 
 class TLEFetcher:
-    """
-    Downloads, parses, and caches TLE data.
-
-    Usage:
-        fetcher = TLEFetcher(cache_dir="./tle_cache")
-        tles = fetcher.fetch_group("weather")
-        tle = fetcher.get_satellite("NOAA 19")
-        print(tle["line1"], tle["line2"])
-    """
+    """Downloads, parses, and caches TLE data."""
 
     def __init__(self, cache_dir: str = "./tle_cache", max_age_hours: int = 12):
         self.cache_dir = Path(cache_dir)
@@ -57,7 +46,7 @@ class TLEFetcher:
         return (datetime.now() - mtime) < self.max_age
 
     def _parse_tle_text(self, text: str) -> List[dict]:
-        """Parse TLE text format (3-line sets) → list of dicts."""
+        """Parse 3-line TLE format."""
         entries = []
         lines = [l.strip() for l in text.strip().splitlines() if l.strip()]
         i = 0
@@ -103,11 +92,10 @@ class TLEFetcher:
         return entries
 
     def get_satellite(self, name: str) -> Optional[dict]:
-        """Get TLE for a satellite by name (case-insensitive)."""
+        """Get TLE for a satellite by name."""
         key = name.upper().strip()
         if key in self._catalog:
             return self._catalog[key]
-        # Try prefix match
         for k, v in self._catalog.items():
             if key in k:
                 return v
@@ -121,7 +109,7 @@ class TLEFetcher:
         return None
 
     def list_satellites(self, filter_str: str = "") -> List[str]:
-        """List all loaded satellite names, optionally filtered."""
+        """List all loaded satellite names."""
         names = sorted(self._catalog.keys())
         if filter_str:
             names = [n for n in names if filter_str.upper() in n]

@@ -1,8 +1,4 @@
-"""
-DSP Performance Benchmarks
-Measures NumPy/SciPy DSP operation throughput on the host platform.
-DynamiX Labs
-"""
+"""DSP performance benchmarks for host platforms."""
 
 import numpy as np
 import time
@@ -15,13 +11,13 @@ log = logging.getLogger("benchmark.dsp")
 
 @dataclass
 class BenchmarkResult:
-    """Single benchmark measurement."""
+    """Single benchmark run result."""
     name: str
     mean_ms: float
     min_ms: float
     max_ms: float
     std_ms: float
-    throughput: float       # operations per second
+    throughput: float       # Ops/sec
     iterations: int
     notes: str = ""
 
@@ -52,17 +48,7 @@ class DSPBenchmarkReport:
 
 
 class DSPBenchmark:
-    """
-    Comprehensive DSP operation benchmarks.
-
-    Tests:
-        - FFT (various sizes)
-        - FIR filtering (various tap counts)
-        - Decimation
-        - FM demodulation
-        - Resampling
-        - Complex multiply-accumulate (MAC)
-    """
+    """DSP operation benchmark suite."""
 
     def __init__(self, n_samples: int = 65536, iterations: int = 500):
         self.n = n_samples
@@ -73,7 +59,6 @@ class DSPBenchmark:
 
     def _time_fn(self, fn, warmup: int = 5) -> BenchmarkResult:
         """Time a function over multiple iterations."""
-        # Warmup
         for _ in range(warmup):
             fn()
 
@@ -82,13 +67,13 @@ class DSPBenchmark:
             t0 = time.perf_counter()
             fn()
             t1 = time.perf_counter()
-            times.append((t1 - t0) * 1000)  # ms
+            times.append((t1 - t0) * 1000)
 
         times_arr = np.array(times)
         return times_arr
 
     def bench_fft(self, size: int = None) -> BenchmarkResult:
-        """Benchmark FFT."""
+        """Benchmark Fast Fourier Transform."""
         n = size or self.n
         data = self.samples[:n].copy()
         times = self._time_fn(lambda: np.fft.fft(data))
@@ -137,7 +122,7 @@ class DSPBenchmark:
         )
 
     def bench_fm_demod(self) -> BenchmarkResult:
-        """Benchmark FM demodulation (angle differentiation)."""
+        """Benchmark FM demodulation."""
         data = self.samples.copy()
 
         def fm_demod():
@@ -157,7 +142,7 @@ class DSPBenchmark:
         )
 
     def bench_agc(self) -> BenchmarkResult:
-        """Benchmark vectorized AGC."""
+        """Benchmark Automatic Gain Control (AGC)."""
         data = self.samples.copy()
 
         def agc():

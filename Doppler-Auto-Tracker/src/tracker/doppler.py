@@ -1,5 +1,3 @@
-"""Real-time Doppler shift calculator for SDR frequency correction."""
-
 import math
 from datetime import datetime, timezone
 from typing import Tuple
@@ -28,7 +26,6 @@ def geodetic_to_ecef(lat_deg: float, lon_deg: float, alt_m: float) -> Tuple[floa
 
 
 class DopplerCalculator:
-    """Real-time Doppler correction for satellite tracking."""
 
     def __init__(self, tle_line1: str, tle_line2: str,
                  observer_lat: float, observer_lon: float,
@@ -46,7 +43,6 @@ class DopplerCalculator:
         self.obs_ecef = geodetic_to_ecef(observer_lat, observer_lon, observer_alt)
 
     def get_satellite_state(self, dt: datetime = None) -> Tuple[Tuple, Tuple]:
-        """Get satellite position and velocity at given time."""
         if self.satellite is None:
             return (0, 0, 7000), (0, 7.8, 0)
 
@@ -63,7 +59,6 @@ class DopplerCalculator:
         return tuple(r), tuple(v)
 
     def range_rate(self, dt: datetime = None) -> float:
-        """Compute radial velocity (range rate) in m/s."""
         pos_km, vel_km_s = self.get_satellite_state(dt)
 
         sat_pos = tuple(x * 1000 for x in pos_km)
@@ -83,13 +78,11 @@ class DopplerCalculator:
         return rr
 
     def doppler_shift(self, nominal_freq: float, dt: datetime = None) -> float:
-        """Calculate Doppler shift in Hz."""
         rr = self.range_rate(dt)
         shift = -nominal_freq * rr / C
         return shift
 
     def corrected_frequency(self, nominal_freq: float, dt: datetime = None) -> float:
-        """Calculate frequency adjusted for Doppler shift."""
         shift = self.doppler_shift(nominal_freq, dt)
         corrected = nominal_freq + shift
         log.debug(
@@ -100,7 +93,6 @@ class DopplerCalculator:
         return corrected
 
     def get_azel(self, dt: datetime = None) -> Tuple[float, float, float]:
-        """Get azimuth, elevation, and range for rotator tracking."""
         pos_km, _ = self.get_satellite_state(dt)
         sat_ecef = tuple(x * 1000 for x in pos_km)
         obs = self.obs_ecef

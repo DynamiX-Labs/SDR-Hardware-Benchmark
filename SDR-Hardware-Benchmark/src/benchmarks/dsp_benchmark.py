@@ -11,7 +11,6 @@ log = logging.getLogger("benchmark.dsp")
 
 @dataclass
 class BenchmarkResult:
-    """Single benchmark run result."""
     name: str
     mean_ms: float
     min_ms: float
@@ -24,7 +23,6 @@ class BenchmarkResult:
 
 @dataclass
 class DSPBenchmarkReport:
-    """Full DSP benchmark report."""
     platform: str
     python_version: str
     numpy_version: str

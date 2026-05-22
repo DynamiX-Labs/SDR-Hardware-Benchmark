@@ -1,5 +1,3 @@
-"""Downloads and caches TLE data from CelesTrak."""
-
 import requests
 import yaml
 import json
@@ -27,7 +25,6 @@ CELESTRAK_TLE_URLS = {
 
 
 class TLEFetcher:
-    """Downloads, parses, and caches TLE data."""
 
     def __init__(self, cache_dir: str = "./tle_cache", max_age_hours: int = 12):
         self.cache_dir = Path(cache_dir)
@@ -46,7 +43,6 @@ class TLEFetcher:
         return (datetime.now() - mtime) < self.max_age
 
     def _parse_tle_text(self, text: str) -> List[dict]:
-        """Parse 3-line TLE format."""
         entries = []
         lines = [l.strip() for l in text.strip().splitlines() if l.strip()]
         i = 0
@@ -69,7 +65,6 @@ class TLEFetcher:
         return entries
 
     def fetch_group(self, group: str = "amateur") -> List[dict]:
-        """Fetch TLE group (cached or fresh)."""
         if self._is_cache_valid(group):
             log.info(f"Using cached TLEs for group: {group}")
             with open(self._cache_path(group)) as f:
@@ -86,13 +81,11 @@ class TLEFetcher:
                 json.dump(entries, f, indent=2)
             log.info(f"Fetched {len(entries)} TLEs for {group}")
 
-        # Index by name
         for e in entries:
             self._catalog[e["name"].upper()] = e
         return entries
 
     def get_satellite(self, name: str) -> Optional[dict]:
-        """Get TLE for a satellite by name."""
         key = name.upper().strip()
         if key in self._catalog:
             return self._catalog[key]
@@ -102,14 +95,12 @@ class TLEFetcher:
         return None
 
     def get_by_norad(self, norad: int) -> Optional[dict]:
-        """Get TLE by NORAD catalog number."""
         for v in self._catalog.values():
             if v.get("norad") == norad:
                 return v
         return None
 
     def list_satellites(self, filter_str: str = "") -> List[str]:
-        """List all loaded satellite names."""
         names = sorted(self._catalog.keys())
         if filter_str:
             names = [n for n in names if filter_str.upper() in n]

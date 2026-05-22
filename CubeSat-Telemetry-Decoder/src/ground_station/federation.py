@@ -1,8 +1,3 @@
-"""
-Ground Station Federation (PKI Hardened)
-Decentralized MQTT packet sharing with strict timing (chronyc parsing)
-and asymmetric ECDSA node authentication.
-"""
 import paho.mqtt.client as mqtt
 import subprocess
 import struct
@@ -20,30 +15,31 @@ from cryptography.exceptions import InvalidSignature
 
 log = logging.getLogger("cubesat.federation")
 
+
 class FederationNode:
+
     def __init__(self, node_id: str, private_key_path: str = None, public_keys_dir: str = None, broker: str = "mqtt.eclipseprojects.io", port: int = 1883):
         self.node_id = node_id
         self.private_key = None
-        self.trust_store = {}  # Map of node_id -> public_key
-        
+        self.trust_store = {}
+
         if private_key_path and public_keys_dir:
             self._load_keys(private_key_path, public_keys_dir)
-            
+
         self.client = mqtt.Client(client_id=node_id)
         self.broker = broker
         self.port = port
         self.time_offset_s = 0.0
-        self.uncertainty_ms = 100.0 # Default fallback
+        self.uncertainty_ms = 100.0
         self._sync_time()
         self.seen_hashes = set()
 
     def _load_keys(self, priv_path: str, pub_dir: str):
-        """Load ECDSA Private Key and populate Trust Store."""
         try:
             with open(priv_path, "rb") as f:
                 self.private_key = serialization.load_pem_private_key(f.read(), password=None)
             log.info("Loaded Node ECDSA Private Key.")
-            
+
             if os.path.exists(pub_dir):
                 for filename in os.listdir(pub_dir):
                     if filename.endswith(".pem"):
@@ -56,7 +52,6 @@ class FederationNode:
             log.error(f"Failed to load PKI keys: {e}")
 
     def _sync_time(self):
-        """Enforce strict NTP synchronization by querying chronyc."""
         try:
             output = subprocess.check_output(['chronyc', 'tracking'], universal_newlines=True)
             for line in output.split('\n'):
@@ -81,19 +76,17 @@ class FederationNode:
             log.error(f"Federation connection failed: {e}")
 
     def _generate_signature(self, payload: bytes, timestamp: float) -> str:
-        """Sign the packet using ECDSA Private Key."""
         if not self.private_key:
             return ""
         msg = payload + struct.pack(">d", timestamp)
         sig = self.private_key.sign(msg, ec.ECDSA(hashes.SHA256()))
         return base64.b64encode(sig).decode('ascii')
-        
+
     def verify_packet(self, sender_node_id: str, payload_hex: str, timestamp: float, signature_b64: str) -> bool:
-        """Verify an incoming packet against the Trust Store."""
         if sender_node_id not in self.trust_store:
             log.warning(f"Rejected packet from unknown node: {sender_node_id}")
             return False
-            
+
         try:
             pub_key = self.trust_store[sender_node_id]
             payload = bytes.fromhex(payload_hex)
@@ -109,20 +102,19 @@ class FederationNode:
             return False
 
     def publish_packet(self, satellite: str, protocol: str, payload: bytes):
-        """Publish an ECDSA authenticated packet to the global network."""
         packet_hash = hashlib.sha256(payload).hexdigest()
-        
+
         if packet_hash in self.seen_hashes:
-            return 
-            
+            return
+
         self.seen_hashes.add(packet_hash)
-        
+
         true_time = time.time() + self.time_offset_s
         signature = self._generate_signature(payload, true_time)
-        
+
         if not signature:
             log.warning("No private key loaded, publishing unsigned packet.")
-        
+
         msg = {
             "node_id": self.node_id,
             "satellite": satellite,

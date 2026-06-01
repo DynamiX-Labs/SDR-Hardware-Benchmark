@@ -245,6 +245,7 @@ We'd love more people involved. Check out [CONTRIBUTING.md](./CONTRIBUTING.md) i
 
 ---
 
+
 <div align="center">
   © 2026 DynamiX Labs — Apache License 2.0
 </div>

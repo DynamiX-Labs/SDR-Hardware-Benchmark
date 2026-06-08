@@ -246,10 +246,10 @@ You'll need to pass through your USB device so the container can talk to your SD
 
 ## Who's building this
 
-- **[@ARYA-mgc](https://github.com/ARYA-mgc)** — started the project, does most of the DSP and architecture work
-- **[@Nithi-tech](https://github.com/Nithi-tech)** — contributor
-- **[@ashwinr-act-cit](https://github.com/ashwinr-act-cit)** — contributor
-- **[@jayarajMd](https://github.com/jayarajMd)** — contributor
+- **[@ARYA-mgc](https://github.com/ARYA-mgc)** — System and DAP Design Engineer
+- **[@Nithi-tech](https://github.com/Nithi-tech)** — Software Developer
+- **[@ashwinr-act-cit](https://github.com/ashwinr-act-cit)** — RF Engineer
+- **[@jayarajMd](https://github.com/jayarajMd)** — Hardware Engineer
 
 We'd love more people involved. Check out [CONTRIBUTING.md](./CONTRIBUTING.md) if you want to help, and [SECURITY.md](./SECURITY.md) if you find something that looks like a vulnerability (please report it privately).
 

@@ -35,7 +35,7 @@ class DopplerCalculator:
             self.satellite = Satrec.twoline2rv(tle_line1, tle_line2)
         except ImportError:
             log.error("sgp4 not installed — run: pip install sgp4")
-            self.satellite = None
+            raise ImportError("sgp4 is required: pip install sgp4")
 
         self.obs_lat = observer_lat
         self.obs_lon = observer_lon
@@ -43,8 +43,6 @@ class DopplerCalculator:
         self.obs_ecef = geodetic_to_ecef(observer_lat, observer_lon, observer_alt)
 
     def get_satellite_state(self, dt: datetime = None) -> Tuple[Tuple, Tuple]:
-        if self.satellite is None:
-            return (0, 0, 7000), (0, 7.8, 0)
 
         if dt is None:
             dt = datetime.now(timezone.utc)
@@ -65,6 +63,11 @@ class DopplerCalculator:
         sat_vel = tuple(v * 1000 for v in vel_km_s)
         obs_pos = self.obs_ecef
 
+        EARTH_ROTATION_RAD_S = 7.2921150e-5
+        obs_vx = -EARTH_ROTATION_RAD_S * obs_pos[1]
+        obs_vy =  EARTH_ROTATION_RAD_S * obs_pos[0]
+        obs_vz =  0.0
+
         rx = sat_pos[0] - obs_pos[0]
         ry = sat_pos[1] - obs_pos[1]
         rz = sat_pos[2] - obs_pos[2]
@@ -74,7 +77,12 @@ class DopplerCalculator:
             return 0.0
 
         ux, uy, uz = rx / range_m, ry / range_m, rz / range_m
-        rr = sat_vel[0] * ux + sat_vel[1] * uy + sat_vel[2] * uz
+        
+        rel_vx = sat_vel[0] - obs_vx
+        rel_vy = sat_vel[1] - obs_vy
+        rel_vz = sat_vel[2] - obs_vz
+        
+        rr = rel_vx * ux + rel_vy * uy + rel_vz * uz
         return rr
 
     def doppler_shift(self, nominal_freq: float, dt: datetime = None) -> float:

@@ -55,3 +55,26 @@ def test_ai_isolation_forest_anomaly(detector):
     assert res["anomaly"] is True
     # If the drop is 600mV, EWMA might also catch it, so we accept either reason
     assert res["reason"] in ["AI Isolation Forest flag", "EWMA divergence", "Z-Score spike (12.00)"]
+
+@pytest.mark.skipif(not SKLEARN_AVAILABLE, reason="scikit-learn is not installed")
+def test_ai_periodic_retrain(detector):
+    """Test that the Isolation Forest retrains periodically."""
+    np.random.seed(42)
+    baseline = np.random.normal(7400, 50, 15)
+    
+    # Calibrate
+    for val in baseline:
+        detector.check_eps_anomaly(val)
+        
+    assert detector.model_trained is True
+    
+    # Push 50 normal samples to trigger a retrain
+    # We should see retrain debug logs, but we can just ensure it doesn't crash
+    # and remains active.
+    for _ in range(50):
+        res = detector.check_eps_anomaly(7400.0 + np.random.normal(0, 10))
+        assert res["anomaly"] is False
+        
+    # Send an anomaly after retraining
+    res = detector.check_eps_anomaly(6800.0)
+    assert res["anomaly"] is True

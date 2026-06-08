@@ -17,5 +17,14 @@ def main():
     
     print("\n" + report.summary())
 
+    import json
+    import pandas as pd
+    rows = [{"name": r.name, "mean_ms": r.mean_ms,
+             "throughput": r.throughput} for r in report.results]
+    pd.DataFrame(rows).to_csv("benchmark_report.csv", index=False)
+    with open("benchmark_report.json", "w") as f:
+        json.dump(rows, f, indent=2)
+    print("Saved benchmark_report.csv and benchmark_report.json")
+
 if __name__ == "__main__":
     main()

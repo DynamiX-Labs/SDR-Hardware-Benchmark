@@ -240,7 +240,7 @@ docker build -t dynamix-labs .
 docker run -it --device=/dev/bus/usb dynamix-labs
 ```
 
-You'll need to pass through your USB device so the container can talk to your SDR dongle.
+You'll need to pass through your USB device so the container can talk to your SDR dongle. Note that **udev rules must be installed on the HOST machine**, not just inside the container. If you get permission errors, ensure your host system has the correct rules installed (see the Quick Hardware Setup above) and consider using `privileged: true` or `device_cgroup_rules` in your docker-compose.
 
 ---
 

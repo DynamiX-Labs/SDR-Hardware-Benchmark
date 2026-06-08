@@ -60,8 +60,14 @@ def main():
     try:
         while True:
             now = datetime.now(timezone.utc)
-            corrected_freq = calc.corrected_frequency(args.nominal_freq, now)
             az, el, rng = calc.get_azel(now)
+            
+            if el < 0:
+                log.debug(f"Satellite below horizon (el={el:.1f}°), skipping")
+                time.sleep(args.update_interval)
+                continue
+                
+            corrected_freq = calc.corrected_frequency(args.nominal_freq, now)
             
             log.info(f"Az: {az:5.1f}° | El: {el:5.1f}° | Range: {rng:6.1f} km | "
                      f"Freq: {corrected_freq/1e6:.6f} MHz")

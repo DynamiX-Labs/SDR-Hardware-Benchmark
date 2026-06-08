@@ -73,16 +73,25 @@ class DSPBenchmark:
     def bench_fft(self, size: int = None) -> BenchmarkResult:
         """Benchmark Fast Fourier Transform."""
         n = size or self.n
-        data = self.samples[:n].copy()
-        times = self._time_fn(lambda: np.fft.fft(data))
         name = f"FFT {n//1024}k-pt"
-        mean = float(np.mean(times))
+        
+        times = []
+        for i in range(self.iterations + 5):
+            data = self.samples[:n].copy()
+            t0 = time.perf_counter()
+            np.fft.fft(data)
+            t1 = time.perf_counter()
+            if i >= 5:
+                times.append((t1 - t0) * 1000)
+                
+        times_arr = np.array(times)
+        mean = float(np.mean(times_arr))
         return BenchmarkResult(
             name=name,
             mean_ms=mean,
-            min_ms=float(np.min(times)),
-            max_ms=float(np.max(times)),
-            std_ms=float(np.std(times)),
+            min_ms=float(np.min(times_arr)),
+            max_ms=float(np.max(times_arr)),
+            std_ms=float(np.std(times_arr)),
             throughput=1000 / mean,
             iterations=self.iterations,
         )
@@ -106,8 +115,8 @@ class DSPBenchmark:
 
     def bench_decimate(self, factor: int = 8) -> BenchmarkResult:
         """Benchmark decimation."""
-        data = self.samples.copy()
-        times = self._time_fn(lambda: data[::factor])
+        from scipy.signal import decimate
+        times = self._time_fn(lambda: decimate(self.real_samples, factor, ftype='fir'))
         mean = float(np.mean(times))
         return BenchmarkResult(
             name=f"Decimate {factor}×",
@@ -144,9 +153,13 @@ class DSPBenchmark:
         data = self.samples.copy()
 
         def agc():
-            mag = np.abs(data)
-            gain = np.where(mag > 0, 1.0 / (mag + 1e-10), 1.0)
-            return data * np.clip(gain, 0.01, 100.0)
+            target = 1.0
+            gain = 1.0
+            out = np.zeros_like(data)
+            for i, s in enumerate(data):
+                out[i] = s * gain
+                gain *= target / (abs(s * gain) + 1e-10)
+            return out
 
         times = self._time_fn(agc)
         mean = float(np.mean(times))
@@ -189,3 +202,17 @@ class DSPBenchmark:
             report.results.append(result)
 
         return report
+
+class SDRHardwareBenchmark:
+    """Hardware benchmark stub for SoapySDR."""
+    def __init__(self, driver="rtlsdr"):
+        try:
+            import SoapySDR
+            self.sdr = SoapySDR.Device({"driver": driver})
+        except ImportError:
+            log.warning("SoapySDR not installed, hardware benchmarks will fail.")
+            self.sdr = None
+
+    def bench_throughput(self, rate=2.4e6) -> BenchmarkResult:
+        # measure actual sample rate vs dropped count
+        pass

@@ -14,11 +14,19 @@ except ImportError:
 
 log = logging.getLogger("cubesat.anomaly")
 
+from collections import deque
+
 class AnomalyDetector:
-    def __init__(self, history_size: int = 100, calibration_window: int = 50):
+    def __init__(self, history_size: int = 100, calibration_window: int = 50, ewma_threshold_mv: int = 500):
+        if history_size <= 0:
+            raise ValueError("history_size must be strictly positive")
+        if calibration_window <= 0:
+            raise ValueError("calibration_window must be strictly positive")
+            
         self.history_size = history_size
         self.calibration_window = calibration_window
-        self.battery_voltage_history = []
+        self.ewma_threshold = ewma_threshold_mv
+        self.battery_voltage_history = deque(maxlen=self.history_size)
         self.ewma_alpha = 0.2
         self.current_ewma = None
         self.model_trained = False
@@ -43,8 +51,6 @@ class AnomalyDetector:
         Uses Statistical Z-Score, EWMA, and AI Isolation Forest.
         """
         self.battery_voltage_history.append(voltage_mv)
-        if len(self.battery_voltage_history) > self.history_size:
-            self.battery_voltage_history.pop(0)
 
         ewma_val = self._update_ewma(voltage_mv)
         samples_count = len(self.battery_voltage_history)
@@ -60,6 +66,11 @@ class AnomalyDetector:
             self.iso_forest.fit(X_train)
             self.model_trained = True
             log.info("AI Isolation Forest model trained on calibration data.")
+        elif self.iso_forest is not None and self.model_trained and samples_count % 50 == 0:
+            # Retrain periodically
+            X_train = np.array(self.battery_voltage_history).reshape(-1, 1)
+            self.iso_forest.fit(X_train)
+            log.debug("AI Isolation Forest model retrained with sliding window.")
 
         # Statistical Checks
         mean = np.mean(self.battery_voltage_history)
@@ -85,7 +96,7 @@ class AnomalyDetector:
             if z_score > 3.0:
                 is_anomaly = True
                 reason = f"Z-Score spike ({z_score:.2f})"
-            elif abs(voltage_mv - ewma_val) > 500: # Sudden 500mV drop/spike against EWMA
+            elif abs(voltage_mv - ewma_val) > self.ewma_threshold: # Sudden drop/spike against EWMA
                 is_anomaly = True
                 reason = "EWMA divergence"
 

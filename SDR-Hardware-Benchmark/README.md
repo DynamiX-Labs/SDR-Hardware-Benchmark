@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📊 SDR Hardware Benchmark
+# SDR Hardware Benchmark
 
 **Performance Profiler for RTL-SDR · HackRF · PlutoSDR · USRP**
 
@@ -15,13 +15,13 @@
 
 ---
 
-## 📡 Overview
+## Overview
 
 SDR-Hardware-Benchmark measures the real-world performance of SDR hardware and host platforms across multiple dimensions: sample throughput, DSP processing speed, phase noise, dynamic range, and CPU/memory load.
 
 ---
 
-## 🏆 Sample Results (DynamiX Labs Reference)
+## Sample Results (DynamiX Labs Reference)
 
 ```
 ═══════════════════════════════════════════════════════════════════════
@@ -50,7 +50,7 @@ DSP BENCHMARK (FFT, Filter, Decimation — pure NumPy/SciPy):
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ```bash
 git clone https://github.com/DynamiX-Labs/SDR-Hardware-Benchmark.git
@@ -75,7 +75,7 @@ python src/reports/compare.py results/pi5_rtlsdr.json results/x86_rtlsdr.json
 
 ---
 
-## 📋 Benchmark Suite
+## Benchmark Suite
 
 | Test | Measures | Duration |
 |---|---|---|
@@ -89,6 +89,6 @@ python src/reports/compare.py results/pi5_rtlsdr.json results/x86_rtlsdr.json
 
 ---
 
-## 📄 License
+## License
 
 Apache License 2.0 — © 2025-2026 DynamiX Labs

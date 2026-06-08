@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎯 Doppler Auto-Tracker
+# Doppler Auto-Tracker
 
 **TLE-Based Satellite Pass Predictor & Real-Time Doppler Correction**
 
@@ -15,7 +15,7 @@
 
 ---
 
-## 📡 Overview
+## Overview
 
 Doppler-Auto-Tracker combines orbital mechanics (SGP4 propagator) with real-time SDR frequency correction and optional antenna rotator control to keep your ground station locked on any LEO/MEO satellite throughout a full pass.
 
@@ -39,7 +39,7 @@ TLE Source (Celestrak/SpaceTrack)
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ```bash
 git clone https://github.com/DynamiX-Labs/Doppler-Auto-Tracker.git
@@ -65,7 +65,7 @@ python src/tracker/track.py --sat "ISS (ZARYA)" --rotator net --rotator-host 127
 
 ---
 
-## 📊 Pass Prediction Output
+## Pass Prediction Output
 
 ```
 Ground Station: Chennai, India (13.0827°N, 80.2707°E, 6m ASL)
@@ -86,7 +86,7 @@ Next 5 Passes:
 
 ---
 
-## 🌐 Doppler Correction Formula
+## Doppler Correction Formula
 
 ```
 f_corrected = f_nominal × (1 + v_radial / c)
@@ -102,7 +102,7 @@ For NOAA-19 at 137.1 MHz:
 
 ---
 
-## 🔧 Hardware Integration
+## Hardware Integration
 
 | Component | Supported Hardware | Interface |
 |---|---|---|
@@ -113,6 +113,6 @@ For NOAA-19 at 137.1 MHz:
 
 ---
 
-## 📄 License
+## License
 
 Apache License 2.0 — © 2025-2026 DynamiX Labs

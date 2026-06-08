@@ -60,14 +60,14 @@ The framework integrates deeply with RF analysis tools. Below are examples of th
 The system captures wideband spectrum data and isolates the narrow carrier signals. The GNU Radio layer handles initial baseband filtering and carrier recovery.
 
 <div align="center">
-  <img src="../docs/images/sdr_waterfall.jpg" height="300" alt="Wideband SDR Waterfall showing satellite pass">
+  <img src="../docs/sdr_waterfall.png" height="300" alt="Wideband SDR Waterfall showing satellite pass">
   <br><i>Figure 1: Wideband SDR waterfall display capturing a LEO satellite pass.</i>
 </div>
 
 <br>
 
 <div align="center">
-  <img src="../docs/images/spectrum_peak.jpg" height="300" alt="Spectrum Analyzer Peak Isolation">
+  <img src="../docs/spectrum_peak.png" height="300" alt="Spectrum Analyzer Peak Isolation">
   <br><i>Figure 2: Baseband spectrum peak isolation prior to demodulation.</i>
 </div>
 
@@ -76,14 +76,14 @@ The system captures wideband spectrum data and isolates the narrow carrier signa
 The ZMQ bridge allows for dynamic control of the GNU Radio flowgraph, updating variables such as center frequency based on the SGP4 Doppler calculations. Once demodulated and deframed, packets are passed to the parser for bit-level extraction.
 
 <div align="center">
-  <img src="../docs/images/grc_flowgraph.jpg" height="300" alt="GNU Radio Companion Decoder Flowgraph">
+  <img src="../docs/grc_flowgraph.jpg" height="300" alt="GNU Radio Companion Decoder Flowgraph">
   <br><i>Figure 3: Core GNU Radio Companion flowgraph for QPSK/BPSK demodulation.</i>
 </div>
 
 <br>
 
 <div align="center">
-  <img src="../docs/images/packet_decode.png" height="300" alt="Packet Decode & Hex Inspection">
+  <img src="../docs/packet_decode.png" height="300" alt="Packet Decode & Hex Inspection">
   <br><i>Figure 4: Bit-level inspection and hexadecimal output of parsed AX.25 frames.</i>
 </div>
 

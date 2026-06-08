@@ -168,7 +168,7 @@ We've tested this against live satellite passes. Not simulations, not recorded I
 The first challenge is just finding the signal. The spectrum is noisy — other radios, thermal noise, interference from that one LED bulb in the hallway. The spectral engine scans the band, identifies peaks above the noise floor, and isolates each one for decoding.
 
 <div align="center">
-  <img src="docs/sdr_waterfall.jpg" width="800" alt="SDR waterfall showing isolated signal">
+  <img src="docs/sdr_waterfall.png" width="800" alt="SDR waterfall showing isolated signal">
 </div>
 
 ### Baseband demodulation
@@ -189,7 +189,7 @@ After demodulation, the raw bits go through the frame synchronizer. It finds the
 For Doppler tracking, you need to know exactly where the carrier peak is. We use Welch's PSD estimation with adaptive noise floor tracking to get sub-hertz accuracy, which is enough to keep the auto-tracker locked on even during fast LEO passes.
 
 <div align="center">
-  <img src="docs/spectrum_peak.jpg" width="800" alt="Spectrum analyzer showing carrier peak">
+  <img src="docs/spectrum_peak.png" width="800" alt="Spectrum analyzer showing carrier peak">
 </div>
 
 ---
@@ -206,6 +206,14 @@ Everything talks to the SDR through SoapySDR, so in theory any supported device 
 - **LimeSDR Mini** — decent middle ground, handles multiple protocols well.
 
 If your SDR isn't on this list but works with SoapySDR, give it a try — it'll probably work.
+
+### Quick Hardware Setup & Drivers
+
+To quickly configure drivers and libraries for your SDR hardware, run our automated setup script or follow the step-by-step instructions in the [hardware-setup/](./hardware-setup) folder.
+
+*   Supports **RTL-SDR**, **HackRF**, **ADALM-Pluto**, **USRP (UHD)**, and **LimeSDR**.
+*   Configures udev rules for non-root USB access and establishes the SoapySDR software interfaces.
+
 
 ---
 

@@ -164,7 +164,7 @@ class DSPBenchmark:
         times = self._time_fn(agc)
         mean = float(np.mean(times))
         return BenchmarkResult(
-            name="AGC (vectorized)",
+            name="AGC (loop)",
             mean_ms=mean,
             min_ms=float(np.min(times)),
             max_ms=float(np.max(times)),
@@ -214,5 +214,4 @@ class SDRHardwareBenchmark:
             self.sdr = None
 
     def bench_throughput(self, rate=2.4e6) -> BenchmarkResult:
-        # measure actual sample rate vs dropped count
-        pass
+        raise NotImplementedError("Hardware throughput benchmark requires SoapySDR hardware")

@@ -309,8 +309,8 @@ graph LR
     classDef gpu fill:#1a1a2e,stroke:#e94560,stroke-width:2px,color:#eee
     classDef cpu fill:#2d2d2d,stroke:#666,stroke-width:1px,color:#ccc
 
-    IQ["IQ Samples<br>(Host Memory)"] --> PIN["Pinned Memory<br>Pool"]:::gpu
-    PIN --> XFER["H→D Transfer<br>(Zero-Copy)"]:::gpu
+    IQ["IQ Samples\n(Host Memory)"] --> PIN["Pinned Memory\nPool"]:::gpu
+    PIN --> XFER["H→D Transfer\n(Zero-Copy)"]:::gpu
     XFER --> FFT["cuFFT Kernel"]:::gpu
     XFER --> FIR["FIR fftconvolve"]:::gpu
     XFER --> PSD["Batched Welch PSD"]:::gpu
@@ -344,8 +344,8 @@ Real-time RF spectrum distribution to browser-based or remote monitoring clients
 ```mermaid
 graph LR
     classDef ws fill:#16213e,stroke:#0f3460,stroke-width:2px,color:#eee
-    SDR["SDR Hardware"] --> ENG["Spectral Engine<br>(GPU PSD)"]
-    ENG --> SRV["SpectrumServer<br>asyncio + websockets"]:::ws
+    SDR["SDR Hardware"] --> ENG["Spectral Engine\n(GPU PSD)"]
+    ENG --> SRV["SpectrumServer\nasyncio + websockets"]:::ws
     SRV --> |"spectrum.psd"| C1["Browser Client"]
     SRV --> |"spectrum.waterfall"| C2["Remote Monitor"]
     SRV --> |"spectrum.detections"| C3["Alerting System"]
@@ -374,12 +374,12 @@ ZeroMQ-based work distribution that enables multiple decoder workers across mach
 ```mermaid
 graph TB
     classDef zmq fill:#0a3d62,stroke:#38ada9,stroke-width:2px,color:#eee
-    CLI["Client / Scheduler"] -->|"SUBMIT job"| FE["ROUTER :5555<br>Frontend"]:::zmq
-    FE --> BRK["Decoder Broker<br>Load Balancer"]:::zmq
-    BRK --> BE["ROUTER :5556<br>Backend"]:::zmq
-    BE --> W1["Worker 1<br>APT + ADS-B"]:::zmq
-    BE --> W2["Worker 2<br>AX.25 + LRPT"]:::zmq
-    BE --> W3["Worker N<br>GPU-Enabled"]:::zmq
+    CLI["Client / Scheduler"] -->|"SUBMIT job"| FE["ROUTER :5555\nFrontend"]:::zmq
+    FE --> BRK["Decoder Broker\nLoad Balancer"]:::zmq
+    BRK --> BE["ROUTER :5556\nBackend"]:::zmq
+    BE --> W1["Worker 1\nAPT + ADS-B"]:::zmq
+    BE --> W2["Worker 2\nAX.25 + LRPT"]:::zmq
+    BE --> W3["Worker N\nGPU-Enabled"]:::zmq
     W1 & W2 & W3 -->|"RESULT"| BRK
     BRK -->|"PUB :5557"| MON["Status Monitor"]:::zmq
 ```

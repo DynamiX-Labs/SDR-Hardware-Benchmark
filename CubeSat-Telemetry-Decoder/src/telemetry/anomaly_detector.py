@@ -22,6 +22,8 @@ class AnomalyDetector:
             raise ValueError("history_size must be strictly positive")
         if calibration_window <= 0:
             raise ValueError("calibration_window must be strictly positive")
+        if calibration_window > history_size:
+            raise ValueError("calibration_window cannot exceed history_size")
             
         self.history_size = history_size
         self.calibration_window = calibration_window

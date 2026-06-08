@@ -43,19 +43,19 @@ flowchart TB
     %% External Systems
     subgraph External_Network [Global & Space Interfaces]
         direction LR
-        SAT((fa:fa-satellite Low Earth Orbit<br>Satellites)):::external
-        TLE[("fa:fa-cloud CelesTrak / Space-Track<br>REST API (HTTPS)")]:::database
-        FED_NET(("fa:fa-network-wired DynamiX Federation<br>Decentralized Nodes")):::external
+        SAT(("fa:fa-satellite Low Earth Orbit\nSatellites")):::external
+        TLE[("fa:fa-cloud CelesTrak / Space-Track\nREST API (HTTPS)")]:::database
+        FED_NET(("fa:fa-network-wired DynamiX Federation\nDecentralized Nodes")):::external
     end
 
     %% RF Frontend
     subgraph RF_Layer [L0: RF Frontend & Digitization]
         direction TB
-        ANT("fa:fa-satellite-dish Az/El Yagi Array<br>(VHF/UHF/L-Band)"):::hardware
-        LNA("fa:fa-bolt Low Noise Amplifier<br>(NF < 0.5dB)"):::hardware
-        HW["fa:fa-microchip SDR Digitizer<br>(RTL-SDR / HackRF / USRP)"]:::hardware
-        BM("fa:fa-stopwatch Hardware Benchmark<br>Zero-Copy Memory Access"):::hardware
-        COH("fa:fa-layer-group Coherent Combiner<br>Ring Buffer (ZMQ IPC)"):::hardware
+        ANT("fa:fa-satellite-dish Az/El Yagi Array\n(VHF/UHF/L-Band)"):::hardware
+        LNA("fa:fa-bolt Low Noise Amplifier\n(NF < 0.5dB)"):::hardware
+        HW["fa:fa-microchip SDR Digitizer\n(RTL-SDR / HackRF / USRP)"]:::hardware
+        BM("fa:fa-stopwatch Hardware Benchmark\nZero-Copy Memory Access"):::hardware
+        COH("fa:fa-layer-group Coherent Combiner\nRing Buffer (ZMQ IPC)"):::hardware
         
         ANT -- RF Analog --> LNA
         LNA -- Amplified RF --> HW
@@ -66,9 +66,9 @@ flowchart TB
     %% Tracking Engine
     subgraph Auto_Tracking [L1: Autonomous Pass Engine]
         direction TB
-        DT["fa:fa-compass Doppler-Auto-Tracker<br>Skyfield / SGP4 Predictor"]:::tracking
-        PID["fa:fa-cogs PID Rotator Controller<br>(Hamlib Protocol)"]:::tracking
-        EMA["fa:fa-wave-square EMA Doppler Filter<br>Continuous Tuning"]:::tracking
+        DT["fa:fa-compass Doppler-Auto-Tracker\nSkyfield / SGP4 Predictor"]:::tracking
+        PID["fa:fa-cogs PID Rotator Controller\n(Hamlib Protocol)"]:::tracking
+        EMA["fa:fa-wave-square EMA Doppler Filter\nContinuous Tuning"]:::tracking
 
         DT -->|Target Vector| PID
         DT -->|Shift Hz| EMA
@@ -77,11 +77,11 @@ flowchart TB
     %% GPU-Accelerated DSP Pipeline
     subgraph DSP_Layer [L2: GPU-Accelerated DSP]
         direction TB
-        GPU["fa:fa-bolt GPU Backend<br>CuPy/CUDA FFT Offload"]:::gpu
-        SU["fa:fa-filter SatSDR-Universal<br>Multi-Band Channelizer"]:::dsp
-        SPEC["fa:fa-chart-bar Spectral Engine<br>GPU Welch PSD & Auto-Detect"]:::dsp
-        SYNC["fa:fa-sync Carrier/Symbol Sync<br>Costas Loop & Gardner TED"]:::dsp
-        FEC["fa:fa-random FEC Decoder<br>Viterbi / Reed-Solomon"]:::dsp
+        GPU["fa:fa-bolt GPU Backend\nCuPy/CUDA FFT Offload"]:::gpu
+        SU["fa:fa-filter SatSDR-Universal\nMulti-Band Channelizer"]:::dsp
+        SPEC["fa:fa-chart-bar Spectral Engine\nGPU Welch PSD & Auto-Detect"]:::dsp
+        SYNC["fa:fa-sync Carrier/Symbol Sync\nCostas Loop & Gardner TED"]:::dsp
+        FEC["fa:fa-random FEC Decoder\nViterbi / Reed-Solomon"]:::dsp
 
         COH == "Multi-Band IQ (20 MSPS)" ==> SU
         GPU -.->|"Offloaded FFT/FIR"| SU
@@ -94,10 +94,10 @@ flowchart TB
     %% Telemetry & Security
     subgraph Telemetry_Layer [L3: Telemetry, AI, & Security]
         direction TB
-        CTD["fa:fa-shield-alt CubeSat-Telemetry-Decoder<br>Deframer (Sync Word)"]:::telemetry
-        CRYPTO["fa:fa-key Cryptography Engine<br>XTEA Decryption & CSP"]:::telemetry
-        ANOMALY["fa:fa-brain AI Anomaly Detection<br>Isolation Forest (TensorFlow)"]:::ai
-        PKI["fa:fa-lock ECDSA PKI Signer<br>SECP256R1 Private Key"]:::telemetry
+        CTD["fa:fa-shield-alt CubeSat-Telemetry-Decoder\nDeframer (Sync Word)"]:::telemetry
+        CRYPTO["fa:fa-key Cryptography Engine\nXTEA Decryption & CSP"]:::telemetry
+        ANOMALY["fa:fa-brain AI Anomaly Detection\nIsolation Forest (TensorFlow)"]:::ai
+        PKI["fa:fa-lock ECDSA PKI Signer\nSECP256R1 Private Key"]:::telemetry
 
         FEC == "Raw Bitstream" ==> CTD
         CTD == "KISS / CSP Frames" ==> CRYPTO
@@ -108,8 +108,8 @@ flowchart TB
     %% WebSocket Streaming
     subgraph Streaming_Layer [L4: WebSocket Live Spectrum Streaming]
         direction LR
-        WSSRV["fa:fa-broadcast-tower Spectrum Server<br>asyncio + websockets (port 8765)"]:::ws
-        PROTO["fa:fa-file-code Stream Protocol<br>MessagePack Binary Frames"]:::ws
+        WSSRV["fa:fa-broadcast-tower Spectrum Server\nasyncio + websockets (port 8765)"]:::ws
+        PROTO["fa:fa-file-code Stream Protocol\nMessagePack Binary Frames"]:::ws
         BROWSER["fa:fa-desktop Browser Dashboard"]:::ws
         REMOTE["fa:fa-globe Remote Monitor"]:::ws
 
@@ -122,10 +122,10 @@ flowchart TB
     %% Distributed Decoder Cluster
     subgraph Cluster_Layer [L5: ZeroMQ Distributed Decoder Cluster]
         direction LR
-        BROKER["fa:fa-server Decoder Broker<br>ROUTER/DEALER (5555/5556)"]:::zmq
-        W1["fa:fa-cog Worker 1<br>APT + ADS-B"]:::zmq
-        W2["fa:fa-cog Worker 2<br>AX.25 + LRPT"]:::zmq
-        WN["fa:fa-cog Worker N<br>GPU-Enabled"]:::zmq
+        BROKER["fa:fa-server Decoder Broker\nROUTER/DEALER (5555/5556)"]:::zmq
+        W1["fa:fa-cog Worker 1\nAPT + ADS-B"]:::zmq
+        W2["fa:fa-cog Worker 2\nAX.25 + LRPT"]:::zmq
+        WN["fa:fa-cog Worker N\nGPU-Enabled"]:::zmq
 
         FEC -.->|"Decode Jobs"| BROKER
         BROKER -->|"Dispatch"| W1

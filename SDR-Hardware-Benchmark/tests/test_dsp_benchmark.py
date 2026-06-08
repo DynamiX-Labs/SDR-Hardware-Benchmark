@@ -20,7 +20,7 @@ def test_bench_decimate(benchmark):
 
 def test_bench_agc(benchmark):
     res = benchmark.bench_agc()
-    assert res.name == "AGC (vectorized)"
+    assert res.name == "AGC (loop)"
     assert res.mean_ms > 0
 
 def test_hardware_stub_init():

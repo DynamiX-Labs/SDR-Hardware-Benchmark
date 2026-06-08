@@ -30,10 +30,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        for project in CubeSat-Telemetry-Decoder Doppler-Auto-Tracker SDR-Hardware-Benchmark SatSDR-Universal; do
-          if [ -f "$project/requirements.txt" ]; then pip install -r "$project/requirements.txt"; fi
-        done
+        pip install .[all]
         
     - name: Lint with flake8
       run: |

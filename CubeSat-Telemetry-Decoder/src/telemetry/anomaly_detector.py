@@ -31,6 +31,7 @@ class AnomalyDetector:
         self.battery_voltage_history = deque(maxlen=self.history_size)
         self.ewma_alpha = 0.2
         self.current_ewma = None
+        self._samples_seen = 0
         self.model_trained = False
         
         if SKLEARN_AVAILABLE:
@@ -53,22 +54,22 @@ class AnomalyDetector:
         Uses Statistical Z-Score, EWMA, and AI Isolation Forest.
         """
         self.battery_voltage_history.append(voltage_mv)
+        self._samples_seen += 1
 
         ewma_val = self._update_ewma(voltage_mv)
-        samples_count = len(self.battery_voltage_history)
         
         # Baseline Calibration (Learning Mode)
-        if samples_count < self.calibration_window:
-            log.debug(f"Learning Mode: Calibrating baseline ({samples_count}/{self.calibration_window})")
-            return {"anomaly": False, "reason": "calibrating", "learning_progress": samples_count / self.calibration_window}
+        if self._samples_seen < self.calibration_window:
+            log.debug(f"Learning Mode: Calibrating baseline ({self._samples_seen}/{self.calibration_window})")
+            return {"anomaly": False, "reason": "calibrating", "learning_progress": self._samples_seen / self.calibration_window}
 
         # Train Isolation Forest if we just finished calibrating
-        if self.iso_forest is not None and not self.model_trained and samples_count >= self.calibration_window:
+        if self.iso_forest is not None and not self.model_trained and self._samples_seen >= self.calibration_window:
             X_train = np.array(self.battery_voltage_history).reshape(-1, 1)
             self.iso_forest.fit(X_train)
             self.model_trained = True
             log.info("AI Isolation Forest model trained on calibration data.")
-        elif self.iso_forest is not None and self.model_trained and samples_count % 50 == 0:
+        elif self.iso_forest is not None and self.model_trained and self._samples_seen % 50 == 0:
             # Retrain periodically
             X_train = np.array(self.battery_voltage_history).reshape(-1, 1)
             self.iso_forest.fit(X_train)

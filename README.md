@@ -182,7 +182,7 @@ Gqrx displaying a wideband waterfall scan across the 40m HF band. Multiple signa
 Live CAS-4B satellite housekeeping telemetry decoded in real time — RF forward power at 153 mW, OBC temperature 13°C, primary bus voltage 11.03V, 207 mA current draw. 193 packets captured across a single pass, showing the frame decoder extracting clean structured fields from raw beacon frames.
 
 <div align="center">
-  <img src="docs/packet_decode.png" width="800" alt="Decoded telemetry packets in Wireshark">
+  <img src="docs/cas4a_decoded2.png" width="800" alt="CubeSat telemetry beacon decoded">
 </div>
 
 ### Narrowband carrier detection across wideband scan

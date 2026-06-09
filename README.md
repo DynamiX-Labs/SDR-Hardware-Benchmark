@@ -164,29 +164,29 @@ The benchmark tool spits out JSON and CSV reports — throughput, CPU load, SNR,
 
 We've tested this against live satellite passes. Not simulations, not recorded IQ files (well, those too for regression), but actual signals coming off the antenna. Here's what we got.
 
-### Wideband spectral isolation
-The first challenge is just finding the signal. The spectrum is noisy — other radios, thermal noise, interference from that one LED bulb in the hallway. The spectral engine scans the band, identifies peaks above the noise floor, and isolates each one for decoding.
+### Wideband spectrum scan with live satellite pass tracking — NOAA-19 AOS
+SDR Console showing a live wideband spectrum view with the satellite tracking panel locked onto a NOAA-19 pass. The waterfall shows multiple signal carriers across the band with the AOS countdown active.
 
 <div align="center">
   <img src="docs/sdr_waterfall.png" width="800" alt="SDR waterfall showing isolated signal">
 </div>
 
-### Baseband demodulation
-Once you've got the signal isolated, you need to demodulate it. We use a Costas loop for carrier recovery and a Gardner timing error detector for symbol sync. It's textbook DSP, but getting it stable on a noisy live signal took quite a bit of tuning.
+### HF band waterfall — wideband spectral monitoring in Gqrx
+Gqrx displaying a wideband waterfall scan across the 40m HF band. Multiple signal bursts are visible above the noise floor, demonstrating the spectral isolation capability before demodulation.
 
 <div align="center">
   <img src="docs/grc_flowgraph.jpg" width="800" alt="GNU Radio flowgraph for decoding">
 </div>
 
-### Telemetry decoding
-After demodulation, the raw bits go through the frame synchronizer. It finds the sync word, strips the framing, runs the CRC check, decrypts if needed, and hands you a clean CSP packet. This screenshot shows the decoded packets in Wireshark — proper structure, valid checksums, the works.
+### CubeSat telemetry beacon decoded — CAS-4B housekeeping data
+Live CAS-4B satellite housekeeping telemetry decoded in real time — RF forward power at 153 mW, OBC temperature 13°C, primary bus voltage 11.03V, 207 mA current draw. 193 packets captured across a single pass, showing the frame decoder extracting clean structured fields from raw beacon frames.
 
 <div align="center">
   <img src="docs/packet_decode.png" width="800" alt="Decoded telemetry packets in Wireshark">
 </div>
 
-### Narrowband carrier detection
-For Doppler tracking, you need to know exactly where the carrier peak is. We use Welch's PSD estimation with adaptive noise floor tracking to get sub-hertz accuracy, which is enough to keep the auto-tracker locked on even during fast LEO passes.
+### Narrowband carrier detection across wideband scan
+Wideband waterfall showing multiple narrowband carriers above the noise floor. The spectral engine identifies each peak for Doppler correction and frequency locking during satellite passes
 
 <div align="center">
   <img src="docs/spectrum_peak.png" width="800" alt="Spectrum analyzer showing carrier peak">

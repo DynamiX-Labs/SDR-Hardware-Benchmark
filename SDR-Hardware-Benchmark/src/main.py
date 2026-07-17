@@ -171,6 +171,7 @@ Examples:
 
 
 if __name__ == "__main__":
+    # Start the SDR benchmark suite
     try:
         main()
     except KeyboardInterrupt:

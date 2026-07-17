@@ -8,6 +8,10 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 import numpy as np
 import logging
+import traceback
+from rich.console import Console
+
+console = Console()
 
 
 class BaseDecoder(ABC):
@@ -53,20 +57,30 @@ class BaseDecoder(ABC):
                 if not raw:
                     break
                 samples = np.frombuffer(raw, dtype=np.complex64)
-                result = self.decode(samples)
-                if result:
-                    results.append(result)
-                    self.log.debug(self.format_output(result))
+                try:
+                    result = self.decode(samples)
+                    if result:
+                        results.append(result)
+                        self.log.debug(self.format_output(result))
+                except Exception as e:
+                    self.log.error(f"DSP error during file decode: {e}")
+                    self.log.debug(traceback.format_exc())
+                    # Continue attempting to decode next chunk instead of crashing
         return results
 
-    def decode_live(self, hardware, chunk_size: int = 65536):
+    def decode_live(self, hardware, chunk_size: int = 65536) -> None:
         """Decode from live SDR hardware stream."""
         self.log.info(f"Live decode started | {self.FREQUENCY/1e6:.3f} MHz")
         try:
             while True:
                 samples = hardware.read_samples(chunk_size)
-                result = self.decode(samples)
-                if result:
-                    print(self.format_output(result))
+                try:
+                    result = self.decode(samples)
+                    if result:
+                        console.print(self.format_output(result))
+                except Exception as e:
+                    self.log.error(f"DSP error during live decode: {e}")
+                    self.log.debug(traceback.format_exc())
+                    # Keep the satellite daemon alive by skipping the corrupted frame
         except KeyboardInterrupt:
             self.log.info("Decode stopped by user")

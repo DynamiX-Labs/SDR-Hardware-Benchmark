@@ -4,6 +4,10 @@ import math
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional
 import logging
+from rich.console import Console
+from rich.table import Table
+
+console = Console()
 
 log = logging.getLogger("doppler.predict")
 
@@ -24,6 +28,11 @@ class PassPredictor:
 
     def __init__(self, obs_lat: float, obs_lon: float, obs_alt: float = 0.0,
                  min_elevation: float = MIN_ELEVATION):
+        if not (-90.0 <= obs_lat <= 90.0):
+            raise ValueError(f"Invalid latitude {obs_lat}. Must be between -90 and +90.")
+        if not (-180.0 <= obs_lon <= 180.0):
+            raise ValueError(f"Invalid longitude {obs_lon}. Must be between -180 and +180.")
+            
         self.obs_lat = obs_lat
         self.obs_lon = obs_lon
         self.obs_alt = obs_alt
@@ -84,24 +93,38 @@ class PassPredictor:
 
         return passes
 
-    def print_table(self, passes: List[Dict], station_name: str = ""):
-        """Print a clean table of upcoming passes."""
+    def print_table(self, passes: List[Dict], station_name: str = "") -> None:
+        """Print a clean table of upcoming passes using rich."""
         if not passes:
-            print("No passes found.")
+            console.print("[yellow]No passes found.[/yellow]")
             return
 
         name = passes[0].get("satellite", "Unknown")
-        print(f"\nGround Station: {station_name} ({self.obs_lat:.4f}°N, {self.obs_lon:.4f}°E)")
-        print(f"Satellite: {name}\n")
-        print(f"{'#':>3}  {'AOS (UTC)':<22}  {'LOS (UTC)':<22}  {'Max El':>7}  {'Duration':>10}")
-        print("─" * 75)
-
+        
+        table = Table(
+            title=f"Upcoming Passes for {name}\nStation: {station_name} ({self.obs_lat:.4f}°N, {self.obs_lon:.4f}°E)",
+            style="cyan"
+        )
+        table.add_column("#", justify="right", style="cyan")
+        table.add_column("AOS (UTC)", style="magenta")
+        table.add_column("LOS (UTC)", style="magenta")
+        table.add_column("Max El", justify="right", style="green")
+        table.add_column("Duration", justify="right", style="yellow")
+        
         for i, p in enumerate(passes, 1):
             aos = p["aos"].strftime("%Y-%m-%d %H:%M:%S")
             los = p["los"].strftime("%Y-%m-%d %H:%M:%S")
             dur_m = p["duration_s"] // 60
             dur_s = p["duration_s"] % 60
             quality = p.get("quality", "")
-            print(f"{i:>3}  {aos:<22}  {los:<22}  {p['max_el']:>6.1f}°  "
-                  f"{dur_m}m {dur_s:02d}s {quality}")
-        print()
+            
+            table.add_row(
+                str(i),
+                aos,
+                los,
+                f"{p['max_el']:.1f}°",
+                f"{dur_m}m {dur_s:02d}s {quality}"
+            )
+            
+        console.print(table)
+        console.print()

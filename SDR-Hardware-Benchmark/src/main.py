@@ -10,12 +10,32 @@ DynamiX Labs
 import argparse
 import sys
 import logging
+from logging.handlers import RotatingFileHandler
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.panel import Panel
+from rich.table import Table
+
+console = Console()
+
+# Configure production-grade logging
+file_handler = RotatingFileHandler(
+    "sdr_benchmark.log", maxBytes=5 * 1024 * 1024, backupCount=3
+)
+file_handler.setFormatter(logging.Formatter(
+    "%(asctime)s [%(levelname)-8s] %(name)s: %(message)s"
+))
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)-8s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%SZ",
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[
+        RichHandler(rich_tracebacks=True, console=console),
+        file_handler
+    ]
 )
+log = logging.getLogger("benchmark.main")
 
 from src.benchmarks.dsp_benchmark import DSPBenchmark, get_categories
 
@@ -77,49 +97,48 @@ Examples:
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+        log.debug("Verbose logging enabled.")
 
     # List categories and exit
     if args.list_categories:
-        print("\nAvailable Benchmark Categories:")
-        print("─" * 40)
+        table = Table(title="Available Benchmark Categories")
+        table.add_column("Category", style="cyan", no_wrap=True)
         for cat in get_categories():
-            print(f"  • {cat}")
-        print()
+            table.add_row(cat)
+        console.print(table)
         return
 
     # System profiling
     profile = None
     if args.profile:
         from src.benchmarks.system_profiler import SystemProfiler
-        print("\n🔍 Profiling system hardware...")
-        profile = SystemProfiler.profile()
-        print(profile.summary())
-        print()
+        with console.status("[bold green]Profiling system hardware...[/bold green]"):
+            profile = SystemProfiler.profile()
+        console.print(Panel(profile.summary(), title="System Profile", style="blue"))
 
     # Validate categories
     if args.categories:
         valid = set(get_categories())
         for cat in args.categories:
             if cat not in valid:
-                print(f"Error: Unknown category '{cat}'. "
-                      f"Use --list-categories to see options.")
+                log.error(f"Unknown category '{cat}'. Use --list-categories to see options.")
                 sys.exit(1)
 
     # Run benchmarks
-    print(f"\n⚡ Initializing DSP Benchmark "
-          f"(Samples: {args.samples}, Iterations: {args.iterations})")
+    console.print(f"\n[bold yellow]⚡ Initializing DSP Benchmark[/bold yellow] "
+                  f"(Samples: {args.samples}, Iterations: {args.iterations})")
 
     benchmark = DSPBenchmark(n_samples=args.samples, iterations=args.iterations)
 
     cat_label = ", ".join(args.categories) if args.categories else "ALL"
-    print(f"📊 Running benchmarks [{cat_label}]...\n")
-
-    report = benchmark.run_all(categories=args.categories)
+    
+    with console.status(f"[bold cyan]📊 Running benchmarks \\[{cat_label}]...[/bold cyan]"):
+        report = benchmark.run_all(categories=args.categories)
 
     # Terminal output
     from src.benchmarks.report_generator import ReportGenerator
 
-    print(ReportGenerator.terminal_report(report, profile))
+    console.print("\n" + ReportGenerator.terminal_report(report, profile))
 
     # Export reports
     from pathlib import Path
@@ -146,10 +165,19 @@ Examples:
 
     # Comparison
     if args.compare:
-        print(ReportGenerator.compare(report, args.compare))
+        console.print(ReportGenerator.compare(report, args.compare))
 
-    print("\n✅ Benchmark complete.")
+    console.print("\n[bold green] Benchmark complete.[/bold green]")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Benchmark cancelled by user.[/yellow]")
+        sys.exit(130)
+    except Exception as e:
+        log.error(f"Fatal error: {str(e)}", exc_info=True)
+        console.print_exception(show_locals=True)
+        console.print(f"\n[bold red]Fatal error during benchmark: {str(e)}[/bold red]")
+        sys.exit(1)

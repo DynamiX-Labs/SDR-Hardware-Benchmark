@@ -15,6 +15,11 @@ updates:
     directory: "/CubeSat-Telemetry-Decoder"
     schedule:
       interval: "weekly"
+    reviewers:
+      - "DynamiX-Labs-Admin"
+    labels:
+      - "dependencies"
+      - "automerge"
     groups:
       python-dependencies:
         patterns:
@@ -24,6 +29,11 @@ updates:
     directory: "/SatSDR-Universal"
     schedule:
       interval: "weekly"
+    reviewers:
+      - "DynamiX-Labs-Admin"
+    labels:
+      - "dependencies"
+      - "automerge"
     groups:
       python-dependencies:
         patterns:
@@ -33,6 +43,11 @@ updates:
     directory: "/Doppler-Auto-Tracker"
     schedule:
       interval: "weekly"
+    reviewers:
+      - "DynamiX-Labs-Admin"
+    labels:
+      - "dependencies"
+      - "automerge"
     groups:
       python-dependencies:
         patterns:
@@ -42,6 +57,11 @@ updates:
     directory: "/SDR-Hardware-Benchmark"
     schedule:
       interval: "weekly"
+    reviewers:
+      - "DynamiX-Labs-Admin"
+    labels:
+      - "dependencies"
+      - "automerge"
     groups:
       python-dependencies:
         patterns:

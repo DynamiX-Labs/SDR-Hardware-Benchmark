@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  satsdr:
+    build: .
+    container_name: satsdr_dev
+    volumes:
+      - .:/app
+    devices:
+      # Allow access to USB SDR devices (RTL-SDR, HackRF, etc)
+      - /dev/bus/usb:/dev/bus/usb
+    network_mode: host
+    privileged: true
+    # If privileged: true is not desired, you can use device_cgroup_rules instead:
+    # device_cgroup_rules:
+    #   - 'c 189:* rmw'
+    cap_add:
+      - SYS_TIME
+    ports:
+      - "8080:8080" # Headless API
+    environment:
+      - DISPLAY=$DISPLAY
+    stdin_open: true
+    tty: true

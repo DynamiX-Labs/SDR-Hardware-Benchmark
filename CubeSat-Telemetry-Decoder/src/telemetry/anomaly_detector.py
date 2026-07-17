@@ -167,12 +167,20 @@ class AnomalyDetector:
         
         for name, param in self.parameters.items():
             if param.history:
+                current = param.history[-1]
+                if current < param.min_safe or current > param.max_safe:
+                    status = "critical"
+                elif current < param.min_nominal or current > param.max_nominal:
+                    status = "warning"
+                else:
+                    status = "nominal"
+                    
                 dash["parameters"][name] = {
-                    "current": param.history[-1],
+                    "current": current,
                     "min": min(param.history),
                     "max": max(param.history),
                     "unit": param.unit,
-                    "status": "nominal" # Calculate properly in full version
+                    "status": status
                 }
                 
         return dash

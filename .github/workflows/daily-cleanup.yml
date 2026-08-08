@@ -1,0 +1,45 @@
+name: Daily Code Cleanup
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight UTC
+  workflow_dispatch: # Allows you to run it manually from the Actions tab
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history for all tags and branches
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit hooks on all files
+        run: pre-commit run --all-files
+        continue-on-error: true # Keep going even if pre-commit found and fixed issues
+
+      - name: Create Pull Request with fixes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: daily auto-format and code cleanup"
+          title: "Code Cleanup: Automated daily formatting"
+          body: |
+            This PR contains automated code formatting and cleanup fixes applied by `pre-commit` hooks (like Black, Flake8, trailing whitespace, etc.).
+
+            This bot runs daily to keep the codebase clean!
+          branch: "auto-cleanup"
+          delete-branch: true
+          labels: "cleanup, automerge"

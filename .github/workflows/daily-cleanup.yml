@@ -34,6 +34,7 @@ jobs:
       - name: Create Pull Request with fixes
         uses: peter-evans/create-pull-request@v8
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: daily auto-format and code cleanup"
           title: "Code Cleanup: Automated daily formatting"
           body: |
@@ -43,3 +44,4 @@ jobs:
           branch: "auto-cleanup"
           delete-branch: true
           labels: "cleanup, automerge"
+

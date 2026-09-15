@@ -1,1 +1,4 @@
 name,mean_ms,min_ms,max_ms,std_ms,throughput,tier,iterations
+FFT 64k-pt,0.0159,0.0147,0.0191,0.0016,62814.07,★ Excellent,5
+FFT 8k-pt,0.015,0.0145,0.0157,0.0004,66666.67,★ Excellent,5
+FFT 1k-pt,0.0153,0.0144,0.0169,0.0009,65445.03,★ Excellent,5

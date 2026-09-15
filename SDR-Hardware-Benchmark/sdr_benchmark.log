@@ -1,0 +1,132 @@
+2026-09-15 19:07:29,369 [INFO    ] benchmark.dsp: Running: FFT 64k
+2026-09-15 19:07:29,396 [INFO    ] benchmark.dsp: Running: FFT 8k
+2026-09-15 19:07:29,398 [INFO    ] benchmark.dsp: Running: FFT 1k
+2026-09-15 19:07:29,400 [INFO    ] benchmark.dsp: Running: FIR 127-tap
+2026-09-15 19:07:30,806 [INFO    ] benchmark.dsp: Running: FIR 63-tap
+2026-09-15 19:07:30,809 [INFO    ] benchmark.dsp: Running: RRC 31-tap
+2026-09-15 19:07:30,811 [INFO    ] benchmark.dsp: Running: RRC 361-tap
+2026-09-15 19:07:30,813 [INFO    ] benchmark.dsp: Running: Decimate 8x
+2026-09-15 19:07:30,817 [INFO    ] benchmark.dsp: Running: Decimate 4x
+2026-09-15 19:07:30,820 [INFO    ] benchmark.dsp: Running: FM Demod
+2026-09-15 19:07:30,822 [INFO    ] benchmark.dsp: Running: AGC Loop
+2026-09-15 19:07:30,829 [INFO    ] benchmark.dsp: Running: AGC Vectorized
+2026-09-15 19:07:30,831 [INFO    ] benchmark.dsp: Running: Costas-2
+2026-09-15 19:07:30,863 [INFO    ] benchmark.dsp: Running: Costas-4
+2026-09-15 19:07:30,900 [INFO    ] benchmark.dsp: Running: Costas-8
+2026-09-15 19:07:30,953 [INFO    ] benchmark.dsp: Running: Gardner 2.0
+2026-09-15 19:07:30,965 [INFO    ] benchmark.dsp: Running: Gardner 4.0
+2026-09-15 19:07:30,970 [INFO    ] benchmark.dsp: Running: M&M 1.2
+2026-09-15 19:07:31,031 [INFO    ] benchmark.dsp: Running: M&M 2.0
+2026-09-15 19:07:31,084 [INFO    ] benchmark.dsp: Running: M&M 3.0
+2026-09-15 19:07:31,106 [INFO    ] benchmark.dsp: Running: Freq Shift
+2026-09-15 19:07:31,108 [INFO    ] benchmark.dsp: Running: Resample 1/10
+2026-09-15 19:07:31,111 [INFO    ] benchmark.dsp: Running: Resample 1/4
+2026-09-15 19:07:31,114 [INFO    ] benchmark.dsp: Running: Channelizer 8ch
+2026-09-15 19:07:31,116 [INFO    ] benchmark.dsp: Running: Channelizer 16ch
+2026-09-15 19:07:31,117 [INFO    ] benchmark.dsp: Running: Sync Corr
+2026-09-15 19:07:31,118 [INFO    ] benchmark.dsp: Running: RS Encode
+2026-09-15 19:07:31,163 [INFO    ] benchmark.dsp: Running: Viterbi K=7
+2026-09-15 19:07:31,921 [INFO    ] benchmark.dsp: Running: CRC32
+2026-09-15 19:07:31,925 [INFO    ] benchmark.dsp: SDR hardware benchmark running in simulation mode
+2026-09-15 19:07:31,926 [INFO    ] benchmark.dsp: Running HW benchmark: Throughput
+2026-09-15 19:07:41,936 [INFO    ] benchmark.dsp: Running HW benchmark: Drop Rate
+2026-09-15 19:07:46,939 [INFO    ] benchmark.dsp: Running HW benchmark: CPU Overhead
+2026-09-15 19:07:50,467 [INFO    ] benchmark.dsp: Running HW benchmark: Memory BW
+2026-09-15 19:07:53,492 [INFO    ] benchmark.report: JSON report saved: benchmark_report.json
+2026-09-15 19:07:53,497 [INFO    ] benchmark.report: CSV report saved: benchmark_report.csv
+2026-09-15 19:07:53,499 [INFO    ] benchmark.report: Markdown report saved: benchmark_report.md
+2026-09-15 19:08:48,877 [INFO    ] benchmark.dsp: Running: FFT 64k
+2026-09-15 19:08:48,892 [INFO    ] benchmark.dsp: Running: FFT 8k
+2026-09-15 19:08:48,921 [INFO    ] benchmark.dsp: Running: FFT 1k
+2026-09-15 19:08:48,939 [INFO    ] benchmark.rf: RF benchmark running in simulation mode
+2026-09-15 19:08:48,939 [INFO    ] benchmark.rf: Running RF benchmark suite (budget tier)...
+2026-09-15 19:08:48,940 [INFO    ] benchmark.rf:   Running: SNR
+2026-09-15 19:08:49,409 [INFO    ] benchmark.rf:   Running: SFDR
+2026-09-15 19:08:49,465 [INFO    ] benchmark.rf:   Running: ENOB
+2026-09-15 19:08:49,531 [INFO    ] benchmark.rf:   Running: DC Offset
+2026-09-15 19:08:49,584 [INFO    ] benchmark.rf:   Running: IQ Imbalance
+2026-09-15 19:08:49,640 [INFO    ] benchmark.rf:   Running: Image Rejection
+2026-09-15 19:08:49,695 [INFO    ] benchmark.rf:   Running: Freq Accuracy
+2026-09-15 19:08:49,751 [INFO    ] benchmark.rf:   Running: Throughput
+2026-09-15 19:08:54,757 [INFO    ] benchmark.rf:   Running: CPU Overhead
+2026-09-15 19:08:58,300 [INFO    ] benchmark.rf:   Running: Phase Noise
+2026-09-15 19:08:58,424 [INFO    ] benchmark.rf: RF benchmark complete: GOOD — 9/12 metrics pass (budget tier)
+2026-09-15 19:08:58,444 [INFO    ] benchmark.report: JSON report saved: benchmark_report.json
+2026-09-15 19:08:58,448 [ERROR   ] benchmark.main: Fatal error: Object of type bool is not JSON serializable
+Traceback (most recent call last):
+  File "C:\Users\ARYA MGC\Downloads\SDR-Hardware-Benchmark-main\SDR-Hardware-Benchmark-main\SDR-Hardware-Benchmark\src\main.py", line 229, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\ARYA MGC\Downloads\SDR-Hardware-Benchmark-main\SDR-Hardware-Benchmark-main\SDR-Hardware-Benchmark\src\main.py", line 202, in main
+    json.dump(rf_report.to_dict(), f, indent=2)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\json\__init__.py", line 181, in dump
+    for chunk in iterable:
+                 ^^^^^^^^
+  File "C:\Python314\Lib\json\encoder.py", line 444, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "C:\Python314\Lib\json\encoder.py", line 413, in _iterencode_dict
+    yield from chunks
+  File "C:\Python314\Lib\json\encoder.py", line 326, in _iterencode_list
+    yield from chunks
+  File "C:\Python314\Lib\json\encoder.py", line 413, in _iterencode_dict
+    yield from chunks
+  File "C:\Python314\Lib\json\encoder.py", line 451, in _iterencode
+    newobj = _default(o)
+  File "C:\Python314\Lib\json\encoder.py", line 182, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+                    f'is not JSON serializable')
+TypeError: Object of type bool is not JSON serializable
+when serializing dict item 'passed'
+when serializing list item 1
+when serializing dict item 'results'
+2026-09-15 19:10:53,023 [INFO    ] benchmark.dsp: Running: FFT 64k
+2026-09-15 19:10:53,037 [INFO    ] benchmark.dsp: Running: FFT 8k
+2026-09-15 19:10:53,038 [INFO    ] benchmark.dsp: Running: FFT 1k
+2026-09-15 19:10:53,050 [INFO    ] benchmark.rf: RF benchmark running in simulation mode
+2026-09-15 19:10:53,050 [INFO    ] benchmark.rf: Running RF benchmark suite (budget tier)...
+2026-09-15 19:10:53,051 [INFO    ] benchmark.rf:   Running: SNR
+2026-09-15 19:10:53,467 [INFO    ] benchmark.rf:   Running: SFDR
+2026-09-15 19:10:53,522 [INFO    ] benchmark.rf:   Running: ENOB
+2026-09-15 19:10:53,584 [INFO    ] benchmark.rf:   Running: DC Offset
+2026-09-15 19:10:53,634 [INFO    ] benchmark.rf:   Running: IQ Imbalance
+2026-09-15 19:10:53,684 [INFO    ] benchmark.rf:   Running: Image Rejection
+2026-09-15 19:10:53,736 [INFO    ] benchmark.rf:   Running: Freq Accuracy
+2026-09-15 19:10:53,789 [INFO    ] benchmark.rf:   Running: Throughput
+2026-09-15 19:10:58,790 [INFO    ] benchmark.rf:   Running: CPU Overhead
+2026-09-15 19:11:02,334 [INFO    ] benchmark.rf:   Running: Phase Noise
+2026-09-15 19:11:02,475 [INFO    ] benchmark.rf: RF benchmark complete: GOOD — 9/12 metrics pass (budget tier)
+2026-09-15 19:11:02,500 [INFO    ] benchmark.report: JSON report saved: benchmark_report.json
+2026-09-15 19:11:02,512 [INFO    ] benchmark.report: CSV report saved: benchmark_report.csv
+2026-09-15 19:11:02,516 [INFO    ] benchmark.report: Markdown report saved: benchmark_report.md
+2026-09-15 19:11:02,520 [ERROR   ] benchmark.main: Fatal error: 'charmap' codec can't encode characters in position 34-113: character maps to <undefined>
+Traceback (most recent call last):
+  File "C:\Users\ARYA MGC\Downloads\SDR-Hardware-Benchmark-main\SDR-Hardware-Benchmark-main\SDR-Hardware-Benchmark\src\main.py", line 229, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\ARYA MGC\Downloads\SDR-Hardware-Benchmark-main\SDR-Hardware-Benchmark-main\SDR-Hardware-Benchmark\src\main.py", line 217, in main
+    f.write(f"# RF Benchmark Report\n\n```text\n{rf_report.summary()}\n```\n")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 34-113: character maps to <undefined>
+2026-09-15 19:13:02,256 [INFO    ] benchmark.dsp: Running: FFT 64k
+2026-09-15 19:13:02,269 [INFO    ] benchmark.dsp: Running: FFT 8k
+2026-09-15 19:13:02,271 [INFO    ] benchmark.dsp: Running: FFT 1k
+2026-09-15 19:13:02,275 [INFO    ] benchmark.rf: RF benchmark running in simulation mode
+2026-09-15 19:13:02,275 [INFO    ] benchmark.rf: Running RF benchmark suite (budget tier)...
+2026-09-15 19:13:02,276 [INFO    ] benchmark.rf:   Running: SNR
+2026-09-15 19:13:02,688 [INFO    ] benchmark.rf:   Running: SFDR
+2026-09-15 19:13:02,741 [INFO    ] benchmark.rf:   Running: ENOB
+2026-09-15 19:13:02,804 [INFO    ] benchmark.rf:   Running: DC Offset
+2026-09-15 19:13:02,855 [INFO    ] benchmark.rf:   Running: IQ Imbalance
+2026-09-15 19:13:02,904 [INFO    ] benchmark.rf:   Running: Image Rejection
+2026-09-15 19:13:02,955 [INFO    ] benchmark.rf:   Running: Freq Accuracy
+2026-09-15 19:13:03,009 [INFO    ] benchmark.rf:   Running: Throughput
+2026-09-15 19:13:08,012 [INFO    ] benchmark.rf:   Running: CPU Overhead
+2026-09-15 19:13:11,570 [INFO    ] benchmark.rf:   Running: Phase Noise
+2026-09-15 19:13:11,701 [INFO    ] benchmark.rf: RF benchmark complete: GOOD — 9/12 metrics pass (budget tier)
+2026-09-15 19:13:11,728 [INFO    ] benchmark.report: JSON report saved: benchmark_report.json
+2026-09-15 19:13:11,737 [INFO    ] benchmark.report: CSV report saved: benchmark_report.csv
+2026-09-15 19:13:11,740 [INFO    ] benchmark.report: Markdown report saved: benchmark_report.md

@@ -59,8 +59,13 @@ decoder = [
     "cryptography>=41.0.0",
     "psutil>=5.9",
 ]
+hardware = [
+    "pyrtlsdr>=0.2.9",
+    "paho-mqtt>=1.6.0",
+    "psutil>=5.9",
+]
 all = [
-    "dynamix-satsdr[universal,benchmark,tracker,decoder]"
+    "dynamix-satsdr[universal,benchmark,tracker,decoder,hardware]"
 ]
 
 [tool.setuptools.packages.find]

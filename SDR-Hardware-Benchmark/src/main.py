@@ -9,6 +9,19 @@ DynamiX Labs
 
 import argparse
 import sys
+from pathlib import Path
+
+# Ensure UTF-8 output on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+pkg_dir = Path(__file__).resolve().parents[1]
+if str(pkg_dir) not in sys.path:
+    sys.path.insert(0, str(pkg_dir))
 import logging
 from logging.handlers import RotatingFileHandler
 from rich.console import Console
@@ -16,11 +29,11 @@ from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.table import Table
 
-console = Console()
+console = Console(legacy_windows=False)
 
 # Configure production-grade logging
 file_handler = RotatingFileHandler(
-    "sdr_benchmark.log", maxBytes=5 * 1024 * 1024, backupCount=3
+    "sdr_benchmark.log", maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
 )
 file_handler.setFormatter(logging.Formatter(
     "%(asctime)s [%(levelname)-8s] %(name)s: %(message)s"
@@ -89,6 +102,18 @@ Examples:
         help="Output directory for report files.",
     )
     parser.add_argument(
+        "--hardware", type=str, nargs="?", const="rtlsdr", default=None,
+        help="Run SDR hardware-level benchmark for specified driver (default: rtlsdr).",
+    )
+    parser.add_argument(
+        "--rf", type=str, nargs="?", const="rtlsdr", default=None,
+        help="Run RF performance benchmark suite for specified driver (default: rtlsdr).",
+    )
+    parser.add_argument(
+        "--simulate", action="store_true",
+        help="Force simulation mode for hardware/RF benchmarks.",
+    )
+    parser.add_argument(
         "--verbose", "-v", action="store_true",
         help="Enable verbose/debug logging.",
     )
@@ -135,6 +160,27 @@ Examples:
     with console.status(f"[bold cyan]📊 Running benchmarks \\[{cat_label}]...[/bold cyan]"):
         report = benchmark.run_all(categories=args.categories)
 
+    # Hardware benchmark (if requested)
+    if args.hardware:
+        from src.benchmarks.dsp_benchmark import SDRHardwareBenchmark
+        console.print(f"\n[bold magenta]📡 Running SDR Hardware Benchmark (Driver: {args.hardware})[/bold magenta]")
+        hw_bench = SDRHardwareBenchmark(driver=args.hardware, simulate=args.simulate)
+        try:
+            hw_results = hw_bench.run_all()
+            report.results.extend(hw_results)
+            console.print(f"[green]✓ Completed {len(hw_results)} hardware benchmark metrics.[/green]")
+        finally:
+            hw_bench.close()
+
+    # RF Performance Benchmark Suite (if requested)
+    rf_report = None
+    if args.rf:
+        from src.benchmarks.rf_benchmark import RFBenchmarkSuite
+        console.print(f"\n[bold magenta]🔬 Running RF Signal Quality Suite (Driver: {args.rf})[/bold magenta]")
+        rf_suite = RFBenchmarkSuite(driver=args.rf, simulate=args.simulate)
+        rf_report = rf_suite.run_all()
+        console.print("\n" + rf_report.summary())
+
     # Terminal output
     from src.benchmarks.report_generator import ReportGenerator
 
@@ -142,6 +188,7 @@ Examples:
 
     # Export reports
     from pathlib import Path
+    import json
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -150,6 +197,9 @@ Examples:
             report, profile,
             output_path=str(out_dir / "benchmark_report.json"),
         )
+        if rf_report:
+            with open(out_dir / "rf_benchmark_report.json", "w", encoding="utf-8") as f:
+                json.dump(rf_report.to_dict(), f, indent=2)
 
     if args.format in ("csv", "all"):
         ReportGenerator.to_csv(
@@ -162,6 +212,9 @@ Examples:
             report, profile,
             output_path=str(out_dir / "benchmark_report.md"),
         )
+        if rf_report:
+            with open(out_dir / "rf_benchmark_report.md", "w", encoding="utf-8") as f:
+                f.write(f"# RF Benchmark Report\n\n```text\n{rf_report.summary()}\n```\n")
 
     # Comparison
     if args.compare:

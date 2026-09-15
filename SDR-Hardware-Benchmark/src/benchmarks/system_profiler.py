@@ -56,6 +56,21 @@ class NumericBackend:
 
 
 @dataclass
+class SDRDeviceInfo:
+    """Information about a detected SDR device."""
+    device_name: str = "Unknown"
+    driver: str = ""
+    serial: str = ""
+    hardware_key: str = ""
+    label: str = ""
+    freq_range_mhz: str = ""
+    sample_rate_range: str = ""
+    gain_range_db: str = ""
+    antenna_ports: List[str] = field(default_factory=list)
+    usb_info: str = ""
+
+
+@dataclass
 class SystemProfile:
     """Complete system profile for benchmark context."""
     hostname: str = ""
@@ -66,6 +81,7 @@ class SystemProfile:
     memory: MemoryInfo = field(default_factory=MemoryInfo)
     gpu: GPUInfo = field(default_factory=GPUInfo)
     numeric: NumericBackend = field(default_factory=NumericBackend)
+    sdr_devices: List[SDRDeviceInfo] = field(default_factory=list)
     timestamp: str = ""
 
     def summary(self) -> str:
@@ -107,8 +123,19 @@ class SystemProfile:
             f" NumPy:    {self.numeric.numpy_version:<46} ",
             f" SciPy:    {self.numeric.scipy_version:<46} ",
             f" BLAS:     {self.numeric.blas_library[:46]:<46} ",
-            "-" * 60,
         ])
+        if self.sdr_devices:
+            lines.append("-" * 60)
+            lines.append(f" SDR Devices: {len(self.sdr_devices)} detected                          ")
+            for dev in self.sdr_devices:
+                dev_str = f"{dev.device_name} ({dev.driver})"
+                lines.append(f"   • {dev_str[:53]:<53} ")
+                if dev.serial:
+                    lines.append(f"     Serial: {dev.serial[:44]:<44} ")
+        else:
+            lines.append("-" * 60)
+            lines.append(" SDR:      No devices detected                            ")
+        lines.append("-" * 60)
         return "\n".join(lines)
 
     def to_dict(self) -> Dict:
@@ -140,6 +167,19 @@ class SystemProfile:
                 "scipy": self.numeric.scipy_version,
                 "blas": self.numeric.blas_library,
             },
+            "sdr_devices": [
+                {
+                    "device_name": d.device_name,
+                    "driver": d.driver,
+                    "serial": d.serial,
+                    "label": d.label,
+                    "freq_range_MHz": d.freq_range_mhz,
+                    "sample_rate_range": d.sample_rate_range,
+                    "gain_range_dB": d.gain_range_db,
+                    "antenna_ports": d.antenna_ports,
+                }
+                for d in self.sdr_devices
+            ],
             "timestamp": self.timestamp,
         }
 
@@ -165,6 +205,8 @@ class SystemProfiler:
         prof.gpu = SystemProfiler._detect_gpu()
         # Numeric backends
         prof.numeric = SystemProfiler._detect_numeric()
+        # SDR devices
+        prof.sdr_devices = SystemProfiler._detect_sdr_devices()
 
         return prof
 
@@ -307,3 +349,73 @@ class SystemProfiler:
             nb.scipy_version = "Not installed"
 
         return nb
+
+    @staticmethod
+    def _detect_sdr_devices() -> List[SDRDeviceInfo]:
+        """Enumerate all SoapySDR-compatible SDR devices on the system."""
+        devices = []
+        try:
+            import SoapySDR
+            from SoapySDR import SOAPY_SDR_RX
+
+            results = SoapySDR.Device.enumerate()
+            for r in results:
+                info = SDRDeviceInfo()
+                info.driver = r.get("driver", "unknown")
+                info.serial = r.get("serial", "")
+                info.label = r.get("label", r.get("driver", ""))
+                info.hardware_key = r.get("hardware", "")
+
+                # Map driver to friendly name
+                driver_names = {
+                    "rtlsdr": "RTL-SDR",
+                    "hackrf": "HackRF One",
+                    "plutosdr": "ADALM-PLUTO",
+                    "uhd": "USRP",
+                    "lime": "LimeSDR",
+                }
+                info.device_name = driver_names.get(info.driver, info.driver.upper())
+
+                # Try to probe device capabilities
+                try:
+                    dev = SoapySDR.Device(dict(r))
+
+                    # Frequency range
+                    freq_ranges = dev.getFrequencyRange(SOAPY_SDR_RX, 0)
+                    if freq_ranges:
+                        lo = freq_ranges[0].minimum() / 1e6
+                        hi = freq_ranges[-1].maximum() / 1e6
+                        info.freq_range_mhz = f"{lo:.1f} - {hi:.1f} MHz"
+
+                    # Sample rate range
+                    rate_ranges = dev.getSampleRateRange(SOAPY_SDR_RX, 0)
+                    if rate_ranges:
+                        lo = rate_ranges[0].minimum() / 1e6
+                        hi = rate_ranges[-1].maximum() / 1e6
+                        info.sample_rate_range = f"{lo:.2f} - {hi:.2f} MSPS"
+
+                    # Gain range
+                    gain_range = dev.getGainRange(SOAPY_SDR_RX, 0)
+                    if gain_range:
+                        info.gain_range_db = (
+                            f"{gain_range.minimum():.1f} - {gain_range.maximum():.1f} dB"
+                        )
+
+                    # Antenna ports
+                    antennas = dev.listAntennas(SOAPY_SDR_RX, 0)
+                    if antennas:
+                        info.antenna_ports = list(antennas)
+
+                except Exception as e:
+                    log.debug(f"Could not probe device {info.driver}: {e}")
+
+                devices.append(info)
+
+            log.info(f"Detected {len(devices)} SDR device(s)")
+
+        except ImportError:
+            log.debug("SoapySDR not installed — SDR device detection skipped")
+        except Exception as e:
+            log.debug(f"SDR device detection failed: {e}")
+
+        return devices

@@ -1,0 +1,166 @@
+{
+  "device": "RTLSDR",
+  "driver": "rtlsdr",
+  "frequency_MHz": 100.0,
+  "sample_rate_MSPS": 2.4,
+  "gain_dB": 30.0,
+  "results": [
+    {
+      "name": "Signal-to-Noise Ratio",
+      "value": 7.5462,
+      "unit": "dB",
+      "category": "signal_quality",
+      "passed": false,
+      "threshold": ">= 20.0 dB (budget)",
+      "details": {
+        "measurements": 8,
+        "std_dB": 0.018,
+        "min_dB": 7.514,
+        "max_dB": 7.569
+      }
+    },
+    {
+      "name": "SFDR",
+      "value": 15.3719,
+      "unit": "dB",
+      "category": "dynamic_range",
+      "passed": false,
+      "threshold": ">= 30.0 dB (budget)",
+      "details": {
+        "fundamental_dBFS": -18.73,
+        "strongest_spur_dBFS": -34.1,
+        "spur_frequency_Hz": 15014.6
+      }
+    },
+    {
+      "name": "ENOB",
+      "value": 0.9104,
+      "unit": "bits",
+      "category": "adc_quality",
+      "passed": false,
+      "threshold": ">= 5.5 bits (budget)",
+      "details": {
+        "SINAD_dB": 7.24,
+        "theoretical_bits": 8
+      }
+    },
+    {
+      "name": "DC Offset",
+      "value": 0.0264,
+      "unit": "V",
+      "category": "iq_quality",
+      "passed": true,
+      "threshold": "<= 0.05 V (budget)",
+      "details": {
+        "dc_I": 0.020969,
+        "dc_Q": 0.015986
+      }
+    },
+    {
+      "name": "IQ Amplitude Imbalance",
+      "value": 0.4229,
+      "unit": "dB",
+      "category": "iq_quality",
+      "passed": true,
+      "threshold": "<= 3.0 dB (budget)",
+      "details": {
+        "rms_I": 0.242002,
+        "rms_Q": 0.230502,
+        "ratio": 1.049893
+      }
+    },
+    {
+      "name": "Image Rejection Ratio",
+      "value": 28.8945,
+      "unit": "dB",
+      "category": "iq_quality",
+      "passed": true,
+      "threshold": ">= 20.0 dB (budget)",
+      "details": {
+        "amplitude_ratio": 1.051489,
+        "phase_error_deg": 2.9432
+      }
+    },
+    {
+      "name": "Frequency Accuracy",
+      "value": 50.0265,
+      "unit": "PPM",
+      "category": "oscillator",
+      "passed": true,
+      "threshold": "<= 60.0 PPM (budget)",
+      "details": {
+        "offset_Hz": 5002.65,
+        "center_freq_MHz": 100.0
+      }
+    },
+    {
+      "name": "Sustained Throughput",
+      "value": 3.3019,
+      "unit": "MSPS",
+      "category": "throughput",
+      "passed": true,
+      "threshold": ">= 95% of requested rate",
+      "details": {
+        "requested_MSPS": 2.4,
+        "efficiency_pct": 137.58,
+        "total_samples": 16515072,
+        "dropped_chunks": 0,
+        "duration_s": 5.0
+      }
+    },
+    {
+      "name": "CPU Overhead",
+      "value": 6.2069,
+      "unit": "%",
+      "category": "system",
+      "passed": true,
+      "threshold": "< 50% CPU overhead",
+      "details": {
+        "baseline_cpu_pct": 19.9,
+        "streaming_cpu_pct": 26.1,
+        "per_core_count": 16
+      }
+    },
+    {
+      "name": "Phase Noise @1kHz",
+      "value": -66.8204,
+      "unit": "dBc/Hz",
+      "category": "phase_noise",
+      "passed": true,
+      "threshold": "",
+      "details": {
+        "offset_Hz": 1000.0,
+        "carrier_dBFS": -18.73,
+        "noise_dBFS": -69.91
+      }
+    },
+    {
+      "name": "Phase Noise @10kHz",
+      "value": -38.3825,
+      "unit": "dBc/Hz",
+      "category": "phase_noise",
+      "passed": true,
+      "threshold": "",
+      "details": {
+        "offset_Hz": 10000.0,
+        "carrier_dBFS": -18.73,
+        "noise_dBFS": -41.47
+      }
+    },
+    {
+      "name": "Phase Noise @100kHz",
+      "value": -72.2131,
+      "unit": "dBc/Hz",
+      "category": "phase_noise",
+      "passed": true,
+      "threshold": "",
+      "details": {
+        "offset_Hz": 100000.0,
+        "carrier_dBFS": -18.73,
+        "noise_dBFS": -75.3
+      }
+    }
+  ],
+  "timestamp": "2026-09-15T13:43:02.275781+00:00",
+  "assessment": "GOOD \u2014 9/12 metrics pass (budget tier)"
+}

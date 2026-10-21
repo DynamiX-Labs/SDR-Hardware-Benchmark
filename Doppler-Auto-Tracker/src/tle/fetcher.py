@@ -1,9 +1,8 @@
 import logging
-import os
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 log = logging.getLogger("doppler.tle")
 

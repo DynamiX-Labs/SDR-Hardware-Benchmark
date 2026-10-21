@@ -14,7 +14,7 @@ import os
 import platform
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 log = logging.getLogger("benchmark.profiler")
 

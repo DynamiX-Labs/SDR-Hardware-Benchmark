@@ -4,11 +4,7 @@ DynamiX Labs | Phase 4
 """
 
 import os
-import struct
 import sys
-import tempfile
-import time
-from pathlib import Path
 
 import pytest
 
@@ -20,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 # ──────────────────────────────────────────────────────────────────────
 class TestCFDPHeader:
     def test_header_pack_unpack(self):
-        from protocols.cfdp import PDUHeader, PDUType, TransmissionMode
+        from protocols.cfdp import PDUHeader, PDUType
 
         h = PDUHeader(
             pdu_type=PDUType.FILE_DATA,
@@ -145,7 +141,7 @@ class TestCFDPSenderReceiver:
         assert received_file.read_bytes() == test_data
 
     def test_sender_transaction_tracking(self, tmp_path):
-        from protocols.cfdp import CFDPSender, TransmissionMode
+        from protocols.cfdp import CFDPSender
 
         test_file = tmp_path / "small.bin"
         test_file.write_bytes(b"test data 12345")

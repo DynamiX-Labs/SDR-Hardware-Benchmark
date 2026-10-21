@@ -6,7 +6,6 @@ DynamiX Labs | Phase 3
 import os
 import struct
 import sys
-import time
 
 import numpy as np
 import pytest
@@ -16,8 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 class TestStreamProtocol:
     def test_psd_roundtrip(self):
-        from streaming.stream_protocol import (SpectrumFrame, pack_frame,
-                                               unpack_frame)
+        from streaming.stream_protocol import SpectrumFrame, pack_frame, unpack_frame
 
         payload = np.random.randn(4096).astype(np.float32)
         frame = SpectrumFrame(
@@ -32,8 +30,7 @@ class TestStreamProtocol:
         np.testing.assert_allclose(unpacked.payload, payload, rtol=1e-5)
 
     def test_detection_roundtrip(self):
-        from streaming.stream_protocol import (SpectrumFrame, pack_frame,
-                                               unpack_frame)
+        from streaming.stream_protocol import SpectrumFrame, pack_frame, unpack_frame
 
         dets = [{"snr_db": 15.3, "bw": 6000.0}]
         frame = SpectrumFrame(channel="spectrum.detections", detections=dets)
@@ -63,8 +60,7 @@ class TestStreamProtocol:
             unpack_frame(b"\x00\x01")
 
     def test_compression(self):
-        from streaming.stream_protocol import (SpectrumFrame, pack_frame,
-                                               unpack_frame)
+        from streaming.stream_protocol import SpectrumFrame, pack_frame, unpack_frame
 
         payload = np.random.randn(32768).astype(np.float32)
         frame = SpectrumFrame(channel="spectrum.psd", payload=payload)
@@ -84,8 +80,7 @@ class TestStreamProtocol:
         assert "payload_b64" in data
 
     def test_waterfall_matrix(self):
-        from streaming.stream_protocol import (SpectrumFrame, pack_frame,
-                                               unpack_frame)
+        from streaming.stream_protocol import SpectrumFrame, pack_frame, unpack_frame
 
         matrix = np.random.randn(50, 4096).astype(np.float32)
         frame = SpectrumFrame(

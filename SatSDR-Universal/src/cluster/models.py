@@ -8,7 +8,7 @@ import enum
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # Try msgpack, fall back to JSON
 try:

@@ -14,10 +14,9 @@ Usage:
 """
 
 import logging
-import threading
 import time
 import uuid
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from typing import List, Optional
 
 log = logging.getLogger("satsdr.cluster.worker")
@@ -31,8 +30,14 @@ except ImportError:
 
 import numpy as np
 
-from .models import (DecodeJob, DecodeResult, JobStatus, WorkerInfo,
-                     deserialize, serialize)
+from .models import (
+    DecodeJob,
+    DecodeResult,
+    JobStatus,
+    WorkerInfo,
+    deserialize,
+    serialize,
+)
 
 # Wire-level command constants (must match broker.py)
 CMD_READY = b"READY"

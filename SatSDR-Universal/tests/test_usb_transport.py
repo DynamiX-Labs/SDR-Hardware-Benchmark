@@ -7,12 +7,15 @@ import os
 import sys
 
 import numpy as np
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from utils.usb_transport import (BufferEvent, SharedRingBuffer,
-                                 TransportMetrics, USBDeviceInfo,
-                                 USBTransportProfiler)
+from utils.usb_transport import (
+    BufferEvent,
+    SharedRingBuffer,
+    TransportMetrics,
+    USBDeviceInfo,
+    USBTransportProfiler,
+)
 
 
 class TestUSBTransport:

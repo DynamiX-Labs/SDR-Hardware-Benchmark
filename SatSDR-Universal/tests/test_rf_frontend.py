@@ -6,14 +6,18 @@ DynamiX Labs | Advanced Hardware Integration
 import os
 import sys
 
-import numpy as np
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from utils.hardware import HardwareManager
-from utils.rf_frontend import (GainFlatnessResult, IQImbalanceResult,
-                               NoiseFigureResult, RFFrontendCharacterizer,
-                               RFFrontendProfile, SpuriousSignal)
+from utils.rf_frontend import (
+    GainFlatnessResult,
+    IQImbalanceResult,
+    NoiseFigureResult,
+    RFFrontendCharacterizer,
+    RFFrontendProfile,
+    SpuriousSignal,
+)
 
 
 class TestRFFrontend:

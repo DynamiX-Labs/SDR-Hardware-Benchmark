@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 
-import pytest
 from src.tracker.doppler import DopplerCalculator
 
 # Example: ISS TLE

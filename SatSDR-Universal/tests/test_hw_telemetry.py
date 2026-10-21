@@ -10,9 +10,14 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from utils.hardware import HardwareManager
-from utils.hw_telemetry import (ClockStatus, HardwareTelemetry, HealthSnapshot,
-                                TelemetryEvent, TelemetryThresholds,
-                                ThermalStatus)
+from utils.hw_telemetry import (
+    ClockStatus,
+    HardwareTelemetry,
+    HealthSnapshot,
+    TelemetryEvent,
+    TelemetryThresholds,
+    ThermalStatus,
+)
 
 
 class TestHardwareTelemetry:

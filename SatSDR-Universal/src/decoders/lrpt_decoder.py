@@ -1,9 +1,7 @@
 import json
 import logging
-import struct
 
 import numpy as np
-import scipy.signal as signal
 
 from .base_decoder import BaseDecoder
 

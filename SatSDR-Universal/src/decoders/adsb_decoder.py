@@ -4,7 +4,6 @@ Decodes 1090 MHz aviation transponder signals (Mode-S Extended Squitter).
 DynamiX Labs
 """
 
-import json
 from datetime import datetime
 
 import numpy as np

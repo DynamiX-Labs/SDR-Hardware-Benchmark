@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 from src.benchmarks.dsp_benchmark import DSPBenchmark, SDRHardwareBenchmark
 

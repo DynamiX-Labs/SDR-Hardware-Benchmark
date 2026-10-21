@@ -4,7 +4,6 @@ Decodes 137 MHz weather satellite images.
 DynamiX Labs
 """
 
-import json
 from datetime import datetime
 
 import numpy as np

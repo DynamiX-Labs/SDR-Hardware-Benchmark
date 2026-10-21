@@ -6,9 +6,9 @@ Includes a low-pass filter for closed-loop Doppler smoothing.
 
 import datetime
 import logging
-from typing import Optional, Tuple
+from typing import Optional
 
-from sgp4.api import WGS84, Satrec
+from sgp4.api import Satrec
 
 log = logging.getLogger("cubesat.orbit")
 

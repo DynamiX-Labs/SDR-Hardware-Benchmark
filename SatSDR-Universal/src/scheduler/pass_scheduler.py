@@ -4,7 +4,6 @@ Predicts satellite passes using SGP4/Skyfield and queues decoder jobs.
 """
 
 import logging
-import time
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 

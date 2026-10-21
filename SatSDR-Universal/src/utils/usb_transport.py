@@ -22,11 +22,10 @@ Usage:
 import logging
 import platform
 import struct
-import threading
 import time
 from dataclasses import dataclass, field
 from multiprocessing import shared_memory
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 
 import numpy as np
 

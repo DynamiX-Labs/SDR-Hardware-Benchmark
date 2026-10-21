@@ -1,4 +1,3 @@
-import os
 
 import pytest
 from cryptography.hazmat.primitives import hashes

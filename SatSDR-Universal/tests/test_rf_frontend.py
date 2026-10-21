@@ -3,21 +3,17 @@ Tests for RF Frontend Characterization Engine
 DynamiX Labs | Advanced Hardware Integration
 """
 
-import pytest
-import numpy as np
 import os
 import sys
 
+import numpy as np
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from utils.hardware import HardwareManager
-from utils.rf_frontend import (
-    RFFrontendCharacterizer,
-    NoiseFigureResult,
-    GainFlatnessResult,
-    IQImbalanceResult,
-    SpuriousSignal,
-    RFFrontendProfile,
-)
+from utils.rf_frontend import (GainFlatnessResult, IQImbalanceResult,
+                               NoiseFigureResult, RFFrontendCharacterizer,
+                               RFFrontendProfile, SpuriousSignal)
 
 
 class TestRFFrontend:
@@ -34,7 +30,9 @@ class TestRFFrontend:
 
     def test_noise_figure_dataclass(self):
         """Verify NoiseFigureResult dataclass."""
-        nf = NoiseFigureResult(noise_figure_db=3.5, noise_temperature_k=350.0, noise_floor_dbm=-105.0)
+        nf = NoiseFigureResult(
+            noise_figure_db=3.5, noise_temperature_k=350.0, noise_floor_dbm=-105.0
+        )
         d = nf.to_dict()
         assert d["noise_figure_dB"] == 3.5
         assert d["noise_temperature_K"] == 350.0

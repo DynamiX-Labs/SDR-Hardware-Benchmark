@@ -11,8 +11,8 @@ DynamiX Labs
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("cubesat.satdb")
 
@@ -110,8 +110,20 @@ BUILTIN_SATELLITES = {
         "status": "active",
         "telemetry_fields": {
             "rf_power_mw": {"offset": 0, "size": 2, "format": ">H", "unit": "mW"},
-            "obc_temp_c": {"offset": 2, "size": 2, "format": ">h", "scale": 0.1, "unit": "°C"},
-            "bus_voltage_v": {"offset": 4, "size": 2, "format": ">H", "scale": 0.01, "unit": "V"},
+            "obc_temp_c": {
+                "offset": 2,
+                "size": 2,
+                "format": ">h",
+                "scale": 0.1,
+                "unit": "°C",
+            },
+            "bus_voltage_v": {
+                "offset": 4,
+                "size": 2,
+                "format": ">H",
+                "scale": 0.01,
+                "unit": "V",
+            },
             "bus_current_ma": {"offset": 6, "size": 2, "format": ">H", "unit": "mA"},
         },
     },
@@ -127,8 +139,20 @@ BUILTIN_SATELLITES = {
         "status": "active",
         "telemetry_fields": {
             "rf_power_mw": {"offset": 0, "size": 2, "format": ">H", "unit": "mW"},
-            "obc_temp_c": {"offset": 2, "size": 2, "format": ">h", "scale": 0.1, "unit": "°C"},
-            "bus_voltage_v": {"offset": 4, "size": 2, "format": ">H", "scale": 0.01, "unit": "V"},
+            "obc_temp_c": {
+                "offset": 2,
+                "size": 2,
+                "format": ">h",
+                "scale": 0.1,
+                "unit": "°C",
+            },
+            "bus_voltage_v": {
+                "offset": 4,
+                "size": 2,
+                "format": ">H",
+                "scale": 0.01,
+                "unit": "V",
+            },
             "bus_current_ma": {"offset": 6, "size": 2, "format": ">H", "unit": "mA"},
         },
     },
@@ -143,9 +167,27 @@ BUILTIN_SATELLITES = {
         "fec": "none",
         "status": "active",
         "telemetry_fields": {
-            "solar_panel_v": {"offset": 0, "size": 2, "format": ">H", "scale": 0.001, "unit": "V"},
-            "battery_v": {"offset": 2, "size": 2, "format": ">H", "scale": 0.001, "unit": "V"},
-            "battery_temp_c": {"offset": 4, "size": 2, "format": ">h", "scale": 0.1, "unit": "°C"},
+            "solar_panel_v": {
+                "offset": 0,
+                "size": 2,
+                "format": ">H",
+                "scale": 0.001,
+                "unit": "V",
+            },
+            "battery_v": {
+                "offset": 2,
+                "size": 2,
+                "format": ">H",
+                "scale": 0.001,
+                "unit": "V",
+            },
+            "battery_temp_c": {
+                "offset": 4,
+                "size": 2,
+                "format": ">h",
+                "scale": 0.1,
+                "unit": "°C",
+            },
         },
     },
     "AMSAT-OSCAR-7": {
@@ -172,10 +214,34 @@ BUILTIN_SATELLITES = {
         "fec": "reed_solomon",
         "status": "inactive",
         "telemetry_fields": {
-            "battery_a_v": {"offset": 0, "size": 2, "format": ">H", "scale": 0.001, "unit": "V"},
-            "battery_b_v": {"offset": 2, "size": 2, "format": ">H", "scale": 0.001, "unit": "V"},
-            "battery_c_v": {"offset": 4, "size": 2, "format": ">H", "scale": 0.001, "unit": "V"},
-            "panel_temp_c": {"offset": 6, "size": 2, "format": ">h", "scale": 0.1, "unit": "°C"},
+            "battery_a_v": {
+                "offset": 0,
+                "size": 2,
+                "format": ">H",
+                "scale": 0.001,
+                "unit": "V",
+            },
+            "battery_b_v": {
+                "offset": 2,
+                "size": 2,
+                "format": ">H",
+                "scale": 0.001,
+                "unit": "V",
+            },
+            "battery_c_v": {
+                "offset": 4,
+                "size": 2,
+                "format": ">H",
+                "scale": 0.001,
+                "unit": "V",
+            },
+            "panel_temp_c": {
+                "offset": 6,
+                "size": 2,
+                "format": ">h",
+                "scale": 0.1,
+                "unit": "°C",
+            },
         },
     },
     "FOX-1CLIFF": {
@@ -196,6 +262,7 @@ BUILTIN_SATELLITES = {
 @dataclass
 class SatelliteConfig:
     """Configuration for a single satellite."""
+
     norad_id: int = 0
     name: str = ""
     frequencies: Dict[str, float] = field(default_factory=dict)
@@ -291,8 +358,9 @@ class SatelliteDatabase:
                 return sat
         return None
 
-    def find_by_frequency(self, freq_hz: float,
-                          tolerance_hz: float = 25e3) -> List[SatelliteConfig]:
+    def find_by_frequency(
+        self, freq_hz: float, tolerance_hz: float = 25e3
+    ) -> List[SatelliteConfig]:
         """Find satellites operating near a given frequency."""
         matches = []
         for sat in self._satellites.values():
@@ -305,14 +373,16 @@ class SatelliteDatabase:
     def find_by_modulation(self, modulation: str) -> List[SatelliteConfig]:
         """Find satellites using a specific modulation scheme."""
         mod_lower = modulation.lower()
-        return [s for s in self._satellites.values()
-                if mod_lower in s.modulation.lower()]
+        return [
+            s for s in self._satellites.values() if mod_lower in s.modulation.lower()
+        ]
 
     def find_by_framing(self, framing: str) -> List[SatelliteConfig]:
         """Find satellites using a specific framing protocol."""
         frame_lower = framing.lower()
-        return [s for s in self._satellites.values()
-                if frame_lower in s.framing.lower()]
+        return [
+            s for s in self._satellites.values() if frame_lower in s.framing.lower()
+        ]
 
     def active_satellites(self) -> List[SatelliteConfig]:
         """Return only active satellites."""
@@ -364,7 +434,9 @@ class SatelliteDatabase:
             "─" * 85,
         ]
         for key, sat in sorted(self._satellites.items()):
-            freq_str = f"{sat.primary_frequency / 1e6:.3f}" if sat.primary_frequency else "N/A"
+            freq_str = (
+                f"{sat.primary_frequency / 1e6:.3f}" if sat.primary_frequency else "N/A"
+            )
             lines.append(
                 f"{key:<18} {sat.name:<28} {freq_str:<12} "
                 f"{sat.modulation:<14} {sat.status:<10}"

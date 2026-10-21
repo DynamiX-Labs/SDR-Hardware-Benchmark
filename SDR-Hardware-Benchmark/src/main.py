@@ -24,6 +24,7 @@ if str(pkg_dir) not in sys.path:
     sys.path.insert(0, str(pkg_dir))
 import logging
 from logging.handlers import RotatingFileHandler
+
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
@@ -35,18 +36,15 @@ console = Console(legacy_windows=False)
 file_handler = RotatingFileHandler(
     "sdr_benchmark.log", maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
 )
-file_handler.setFormatter(logging.Formatter(
-    "%(asctime)s [%(levelname)-8s] %(name)s: %(message)s"
-))
+file_handler.setFormatter(
+    logging.Formatter("%(asctime)s [%(levelname)-8s] %(name)s: %(message)s")
+)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
     datefmt="[%X]",
-    handlers=[
-        RichHandler(rich_tracebacks=True, console=console),
-        file_handler
-    ]
+    handlers=[RichHandler(rich_tracebacks=True, console=console), file_handler],
 )
 log = logging.getLogger("benchmark.main")
 
@@ -68,53 +66,77 @@ Examples:
     )
 
     parser.add_argument(
-        "--samples", type=int, default=65536,
+        "--samples",
+        type=int,
+        default=65536,
         help="Number of samples to generate (default: 65536)",
     )
     parser.add_argument(
-        "--iterations", type=int, default=500,
+        "--iterations",
+        type=int,
+        default=500,
         help="Number of iterations per test (default: 500)",
     )
     parser.add_argument(
-        "--categories", nargs="*", default=None,
+        "--categories",
+        nargs="*",
+        default=None,
         help="Benchmark categories to run (default: all). "
-             "Use --list-categories to see options.",
+        "Use --list-categories to see options.",
     )
     parser.add_argument(
-        "--list-categories", action="store_true",
+        "--list-categories",
+        action="store_true",
         help="List all available benchmark categories and exit.",
     )
     parser.add_argument(
-        "--profile", action="store_true",
+        "--profile",
+        action="store_true",
         help="Run system hardware profiling before benchmarks.",
     )
     parser.add_argument(
-        "--format", choices=["json", "csv", "markdown", "all"],
+        "--format",
+        choices=["json", "csv", "markdown", "all"],
         default="all",
         help="Output format (default: all).",
     )
     parser.add_argument(
-        "--compare", type=str, default=None,
+        "--compare",
+        type=str,
+        default=None,
         help="Path to baseline JSON report for comparison.",
     )
     parser.add_argument(
-        "--output-dir", type=str, default=".",
+        "--output-dir",
+        type=str,
+        default=".",
         help="Output directory for report files.",
     )
     parser.add_argument(
-        "--hardware", type=str, nargs="?", const="rtlsdr", default=None,
+        "--hardware",
+        type=str,
+        nargs="?",
+        const="rtlsdr",
+        default=None,
         help="Run SDR hardware-level benchmark for specified driver (default: rtlsdr).",
     )
     parser.add_argument(
-        "--rf", type=str, nargs="?", const="rtlsdr", default=None,
+        "--rf",
+        type=str,
+        nargs="?",
+        const="rtlsdr",
+        default=None,
         help="Run RF performance benchmark suite for specified driver (default: rtlsdr).",
     )
     parser.add_argument(
-        "--simulate", action="store_true",
+        "--simulate",
+        action="store_true",
         help="Force simulation mode for hardware/RF benchmarks.",
     )
     parser.add_argument(
-        "--verbose", "-v", action="store_true",
+        "--verbose",
+        "-v",
+        action="store_true",
         help="Enable verbose/debug logging.",
     )
 
@@ -137,6 +159,7 @@ Examples:
     profile = None
     if args.profile:
         from src.benchmarks.system_profiler import SystemProfiler
+
         with console.status("[bold green]Profiling system hardware...[/bold green]"):
             profile = SystemProfiler.profile()
         console.print(Panel(profile.summary(), title="System Profile", style="blue"))
@@ -146,29 +169,40 @@ Examples:
         valid = set(get_categories())
         for cat in args.categories:
             if cat not in valid:
-                log.error(f"Unknown category '{cat}'. Use --list-categories to see options.")
+                log.error(
+                    f"Unknown category '{cat}'. Use --list-categories to see options."
+                )
                 sys.exit(1)
 
     # Run benchmarks
-    console.print(f"\n[bold yellow]⚡ Initializing DSP Benchmark[/bold yellow] "
-                  f"(Samples: {args.samples}, Iterations: {args.iterations})")
+    console.print(
+        f"\n[bold yellow]⚡ Initializing DSP Benchmark[/bold yellow] "
+        f"(Samples: {args.samples}, Iterations: {args.iterations})"
+    )
 
     benchmark = DSPBenchmark(n_samples=args.samples, iterations=args.iterations)
 
     cat_label = ", ".join(args.categories) if args.categories else "ALL"
-    
-    with console.status(f"[bold cyan]📊 Running benchmarks \\[{cat_label}]...[/bold cyan]"):
+
+    with console.status(
+        f"[bold cyan]📊 Running benchmarks \\[{cat_label}]...[/bold cyan]"
+    ):
         report = benchmark.run_all(categories=args.categories)
 
     # Hardware benchmark (if requested)
     if args.hardware:
         from src.benchmarks.dsp_benchmark import SDRHardwareBenchmark
-        console.print(f"\n[bold magenta]📡 Running SDR Hardware Benchmark (Driver: {args.hardware})[/bold magenta]")
+
+        console.print(
+            f"\n[bold magenta]📡 Running SDR Hardware Benchmark (Driver: {args.hardware})[/bold magenta]"
+        )
         hw_bench = SDRHardwareBenchmark(driver=args.hardware, simulate=args.simulate)
         try:
             hw_results = hw_bench.run_all()
             report.results.extend(hw_results)
-            console.print(f"[green]✓ Completed {len(hw_results)} hardware benchmark metrics.[/green]")
+            console.print(
+                f"[green]✓ Completed {len(hw_results)} hardware benchmark metrics.[/green]"
+            )
         finally:
             hw_bench.close()
 
@@ -176,7 +210,10 @@ Examples:
     rf_report = None
     if args.rf:
         from src.benchmarks.rf_benchmark import RFBenchmarkSuite
-        console.print(f"\n[bold magenta]🔬 Running RF Signal Quality Suite (Driver: {args.rf})[/bold magenta]")
+
+        console.print(
+            f"\n[bold magenta]🔬 Running RF Signal Quality Suite (Driver: {args.rf})[/bold magenta]"
+        )
         rf_suite = RFBenchmarkSuite(driver=args.rf, simulate=args.simulate)
         rf_report = rf_suite.run_all()
         console.print("\n" + rf_report.summary())
@@ -187,14 +224,16 @@ Examples:
     console.print("\n" + ReportGenerator.terminal_report(report, profile))
 
     # Export reports
-    from pathlib import Path
     import json
+    from pathlib import Path
+
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if args.format in ("json", "all"):
         ReportGenerator.to_json(
-            report, profile,
+            report,
+            profile,
             output_path=str(out_dir / "benchmark_report.json"),
         )
         if rf_report:
@@ -209,12 +248,15 @@ Examples:
 
     if args.format in ("markdown", "all"):
         ReportGenerator.to_markdown(
-            report, profile,
+            report,
+            profile,
             output_path=str(out_dir / "benchmark_report.md"),
         )
         if rf_report:
             with open(out_dir / "rf_benchmark_report.md", "w", encoding="utf-8") as f:
-                f.write(f"# RF Benchmark Report\n\n```text\n{rf_report.summary()}\n```\n")
+                f.write(
+                    f"# RF Benchmark Report\n\n```text\n{rf_report.summary()}\n```\n"
+                )
 
     # Comparison
     if args.compare:

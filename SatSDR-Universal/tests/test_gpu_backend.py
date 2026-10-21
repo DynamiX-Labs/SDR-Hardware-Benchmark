@@ -6,10 +6,11 @@ Tests CPU fallback path (always available) and verifies numerical
 equivalence with NumPy/SciPy reference implementations.
 """
 
+import os
+import sys
+
 import numpy as np
 import pytest
-import sys
-import os
 
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -22,6 +23,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 def gpu_backend():
     """Create a GPUBackend instance (will use CPU fallback if no CUDA)."""
     from dsp.gpu_backend import GPUBackend
+
     return GPUBackend()
 
 
@@ -41,6 +43,7 @@ def sample_iq():
 def fir_taps():
     """Generate a basic FIR lowpass filter."""
     from scipy.signal import firwin
+
     return firwin(63, 50_000 / (250_000 / 2)).astype(np.float32)
 
 
@@ -65,6 +68,7 @@ class TestGPUBackendInit:
     def test_context_manager(self):
         """Backend should work as context manager."""
         from dsp.gpu_backend import GPUBackend
+
         with GPUBackend() as gpu:
             assert gpu is not None
 
@@ -94,9 +98,7 @@ class TestFFT:
         spectrum = gpu_backend.fft(sample_iq)
         recovered = gpu_backend.ifft(spectrum)
         np.testing.assert_allclose(
-            np.abs(recovered[:len(sample_iq)]),
-            np.abs(sample_iq),
-            rtol=1e-3
+            np.abs(recovered[: len(sample_iq)]), np.abs(sample_iq), rtol=1e-3
         )
 
     def test_fft_increments_counter(self, gpu_backend, sample_iq):
@@ -128,9 +130,7 @@ class TestBatchFFT:
         batch_result = gpu_backend.batch_fft([chunk])[0]
         single_result = gpu_backend.fft(chunk)
         np.testing.assert_allclose(
-            np.abs(batch_result[:1024]),
-            np.abs(single_result[:1024]),
-            rtol=1e-2
+            np.abs(batch_result[:1024]), np.abs(single_result[:1024]), rtol=1e-2
         )
 
 

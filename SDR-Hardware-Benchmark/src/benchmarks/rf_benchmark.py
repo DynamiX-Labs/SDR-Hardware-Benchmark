@@ -22,20 +22,23 @@ Usage:
     print(report.summary())
 """
 
-import numpy as np
-import time
 import logging
+import time
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 log = logging.getLogger("benchmark.rf")
 
 
 # ─── Data Classes ────────────────────────────────────────────────────────
 
+
 @dataclass
 class RFBenchmarkResult:
     """A single RF benchmark measurement result."""
+
     name: str
     value: float
     unit: str
@@ -74,6 +77,7 @@ class RFBenchmarkResult:
 @dataclass
 class RFBenchmarkReport:
     """Complete RF benchmark report."""
+
     device_name: str = "Unknown"
     driver: str = ""
     frequency_mhz: float = 0.0
@@ -105,9 +109,7 @@ class RFBenchmarkReport:
                     lines.append("  " + "─" * 76)
 
             status = "✓ PASS" if r.passed else "✗ FAIL"
-            lines.append(
-                f"  {r.name:<32} {r.value:>12.3f} {r.unit:<8} {status:<12}"
-            )
+            lines.append(f"  {r.name:<32} {r.value:>12.3f} {r.unit:<8} {status:<12}")
 
         lines.append("─" * 80)
         lines.append(f"  Assessment: {self.assessment}")
@@ -131,7 +133,7 @@ class RFBenchmarkReport:
 
 # Pass/fail thresholds by SDR tier
 THRESHOLDS = {
-    "budget": {      # RTL-SDR, cheap dongles
+    "budget": {  # RTL-SDR, cheap dongles
         "snr_db": 20.0,
         "sfdr_db": 30.0,
         "enob": 5.5,
@@ -140,7 +142,7 @@ THRESHOLDS = {
         "image_rejection_db": 20.0,
         "freq_accuracy_ppm": 60.0,
     },
-    "midrange": {    # HackRF, LimeSDR, PlutoSDR
+    "midrange": {  # HackRF, LimeSDR, PlutoSDR
         "snr_db": 40.0,
         "sfdr_db": 45.0,
         "enob": 8.0,
@@ -149,7 +151,7 @@ THRESHOLDS = {
         "image_rejection_db": 35.0,
         "freq_accuracy_ppm": 10.0,
     },
-    "research": {    # USRP B200/B210
+    "research": {  # USRP B200/B210
         "snr_db": 55.0,
         "sfdr_db": 60.0,
         "enob": 10.0,
@@ -170,6 +172,7 @@ DRIVER_TIER = {
 
 
 # ─── RF Benchmark Suite ─────────────────────────────────────────────────
+
 
 class RFBenchmarkSuite:
     """
@@ -197,12 +200,15 @@ class RFBenchmarkSuite:
         Force simulation mode even if hardware is available
     """
 
-    def __init__(self, driver: str = "rtlsdr",
-                 frequency: float = 100e6,
-                 sample_rate: float = 2.4e6,
-                 gain: float = 30.0,
-                 n_samples: int = 262144,
-                 simulate: bool = False):
+    def __init__(
+        self,
+        driver: str = "rtlsdr",
+        frequency: float = 100e6,
+        sample_rate: float = 2.4e6,
+        gain: float = 30.0,
+        n_samples: int = 262144,
+        simulate: bool = False,
+    ):
         self.driver = driver
         self.frequency = frequency
         self.sample_rate = sample_rate
@@ -226,11 +232,13 @@ class RFBenchmarkSuite:
             # Import from the SatSDR-Universal project
             import sys
             from pathlib import Path
+
             repo_root = Path(__file__).resolve().parents[3]
             satsdr_dir = repo_root / "SatSDR-Universal"
             if satsdr_dir.exists() and str(satsdr_dir) not in sys.path:
                 sys.path.insert(0, str(satsdr_dir))
             from src.utils.hardware import HardwareManager
+
             self._hw = HardwareManager(self.driver)
             self._hw.configure(
                 frequency=self.frequency,
@@ -264,10 +272,16 @@ class RFBenchmarkSuite:
         # Noise (scaled by tier)
         noise_levels = {"budget": 0.08, "midrange": 0.02, "research": 0.005}
         noise_amp = noise_levels.get(self._tier, 0.05)
-        noise = (np.random.randn(n) + 1j * np.random.randn(n)).astype(np.complex64) * noise_amp
+        noise = (np.random.randn(n) + 1j * np.random.randn(n)).astype(
+            np.complex64
+        ) * noise_amp
 
         # DC offset
-        dc_offsets = {"budget": 0.02 + 0.015j, "midrange": 0.005 + 0.003j, "research": 0.001 + 0.001j}
+        dc_offsets = {
+            "budget": 0.02 + 0.015j,
+            "midrange": 0.005 + 0.003j,
+            "research": 0.001 + 0.001j,
+        }
         dc = dc_offsets.get(self._tier, 0.01)
 
         # Spurs (LO leakage)
@@ -276,7 +290,11 @@ class RFBenchmarkSuite:
         lo_leak = spur_amp * np.exp(2j * np.pi * 100 * t)  # Near DC
 
         # IQ imbalance
-        imbalance = {"budget": (1.05, 0.05), "midrange": (1.01, 0.01), "research": (1.002, 0.003)}
+        imbalance = {
+            "budget": (1.05, 0.05),
+            "midrange": (1.01, 0.01),
+            "research": (1.002, 0.003),
+        }
         amp_imb, phase_imb = imbalance.get(self._tier, (1.02, 0.02))
 
         signal = carrier + signal2 + noise + dc + lo_leak
@@ -371,7 +389,7 @@ class RFBenchmarkSuite:
         spur_power = masked[spur_idx]
         sfdr = peak_power - spur_power
 
-        spur_freq = (spur_idx * self.sample_rate / n_fft)
+        spur_freq = spur_idx * self.sample_rate / n_fft
         if spur_freq > self.sample_rate / 2:
             spur_freq -= self.sample_rate
 
@@ -430,9 +448,11 @@ class RFBenchmarkSuite:
             threshold=f">= {threshold} bits ({self._tier})",
             details={
                 "SINAD_dB": round(sinad_db, 2),
-                "theoretical_bits": getattr(
-                    getattr(self._hw, 'device_profile', None), 'adc_bits', 8
-                ) if self._hw else 8,
+                "theoretical_bits": (
+                    getattr(getattr(self._hw, "device_profile", None), "adc_bits", 8)
+                    if self._hw
+                    else 8
+                ),
             },
         )
 
@@ -447,7 +467,7 @@ class RFBenchmarkSuite:
 
         dc_i = float(np.mean(np.real(samples)))
         dc_q = float(np.mean(np.imag(samples)))
-        dc_magnitude = np.sqrt(dc_i ** 2 + dc_q ** 2)
+        dc_magnitude = np.sqrt(dc_i**2 + dc_q**2)
 
         threshold = self._thresholds["dc_offset"]
 
@@ -475,8 +495,8 @@ class RFBenchmarkSuite:
         i_ch = np.real(samples) - np.mean(np.real(samples))
         q_ch = np.imag(samples) - np.mean(np.imag(samples))
 
-        rms_i = np.sqrt(np.mean(i_ch ** 2))
-        rms_q = np.sqrt(np.mean(q_ch ** 2))
+        rms_i = np.sqrt(np.mean(i_ch**2))
+        rms_q = np.sqrt(np.mean(q_ch**2))
 
         if rms_q > 0:
             imbalance_db = 20.0 * np.log10(rms_i / rms_q)
@@ -509,8 +529,8 @@ class RFBenchmarkSuite:
         i_ch = np.real(samples) - np.mean(np.real(samples))
         q_ch = np.imag(samples) - np.mean(np.imag(samples))
 
-        rms_i = np.sqrt(np.mean(i_ch ** 2))
-        rms_q = np.sqrt(np.mean(q_ch ** 2))
+        rms_i = np.sqrt(np.mean(i_ch**2))
+        rms_q = np.sqrt(np.mean(q_ch**2))
 
         g = rms_i / rms_q if rms_q > 0 else 1.0
 
@@ -542,7 +562,9 @@ class RFBenchmarkSuite:
             },
         )
 
-    def bench_phase_noise(self, offsets_hz: List[float] = None) -> List[RFBenchmarkResult]:
+    def bench_phase_noise(
+        self, offsets_hz: List[float] = None
+    ) -> List[RFBenchmarkResult]:
         """
         Estimate phase noise at various offsets from the carrier.
 
@@ -583,18 +605,20 @@ class RFBenchmarkSuite:
             # Phase noise: L(f) = noise_power - carrier_power - 10*log10(RBW)
             l_f = noise_power - carrier_power - 10.0 * np.log10(bin_width)
 
-            results.append(RFBenchmarkResult(
-                name=f"Phase Noise @{offset/1e3:.0f}kHz",
-                value=float(l_f),
-                unit="dBc/Hz",
-                category="phase_noise",
-                passed=True,  # Informational metric
-                details={
-                    "offset_Hz": offset,
-                    "carrier_dBFS": round(float(carrier_power), 2),
-                    "noise_dBFS": round(float(noise_power), 2),
-                },
-            ))
+            results.append(
+                RFBenchmarkResult(
+                    name=f"Phase Noise @{offset/1e3:.0f}kHz",
+                    value=float(l_f),
+                    unit="dBc/Hz",
+                    category="phase_noise",
+                    passed=True,  # Informational metric
+                    details={
+                        "offset_Hz": offset,
+                        "carrier_dBFS": round(float(carrier_power), 2),
+                        "noise_dBFS": round(float(noise_power), 2),
+                    },
+                )
+            )
 
         return results
 
@@ -669,7 +693,9 @@ class RFBenchmarkSuite:
 
         elapsed = time.perf_counter() - start
         actual_rate = total_samples / elapsed if elapsed > 0 else 0
-        efficiency = (actual_rate / self.sample_rate * 100) if self.sample_rate > 0 else 0
+        efficiency = (
+            (actual_rate / self.sample_rate * 100) if self.sample_rate > 0 else 0
+        )
 
         return RFBenchmarkResult(
             name="Sustained Throughput",
@@ -753,7 +779,7 @@ class RFBenchmarkSuite:
         )
 
         # Populate device name if hardware available
-        if self._hw and hasattr(self._hw, 'device_profile'):
+        if self._hw and hasattr(self._hw, "device_profile"):
             report.device_name = self._hw.device_profile.device_name
 
         log.info(f"Running RF benchmark suite ({self._tier} tier)...")
@@ -781,10 +807,15 @@ class RFBenchmarkSuite:
                     report.results.append(result)
             except Exception as e:
                 log.warning(f"  {name} failed: {e}")
-                report.results.append(RFBenchmarkResult(
-                    name=name, value=0.0, unit="N/A",
-                    passed=False, threshold=f"ERROR: {e}",
-                ))
+                report.results.append(
+                    RFBenchmarkResult(
+                        name=name,
+                        value=0.0,
+                        unit="N/A",
+                        passed=False,
+                        threshold=f"ERROR: {e}",
+                    )
+                )
 
         # Phase noise (returns multiple results)
         log.info("  Running: Phase Noise")
@@ -800,13 +831,21 @@ class RFBenchmarkSuite:
         ratio = passed / total if total > 0 else 0
 
         if ratio >= 0.9:
-            report.assessment = f"EXCELLENT — {passed}/{total} metrics pass ({self._tier} tier)"
+            report.assessment = (
+                f"EXCELLENT — {passed}/{total} metrics pass ({self._tier} tier)"
+            )
         elif ratio >= 0.7:
-            report.assessment = f"GOOD — {passed}/{total} metrics pass ({self._tier} tier)"
+            report.assessment = (
+                f"GOOD — {passed}/{total} metrics pass ({self._tier} tier)"
+            )
         elif ratio >= 0.5:
-            report.assessment = f"ADEQUATE — {passed}/{total} metrics pass ({self._tier} tier)"
+            report.assessment = (
+                f"ADEQUATE — {passed}/{total} metrics pass ({self._tier} tier)"
+            )
         else:
-            report.assessment = f"NEEDS ATTENTION — {passed}/{total} metrics pass ({self._tier} tier)"
+            report.assessment = (
+                f"NEEDS ATTENTION — {passed}/{total} metrics pass ({self._tier} tier)"
+            )
 
         log.info(f"RF benchmark complete: {report.assessment}")
         return report

@@ -4,10 +4,12 @@ Provides a ZeroMQ PUB socket to send real-time control messages (like Doppler sh
 to a running GNU Radio Companion flowgraph.
 """
 
-import zmq
 import logging
 
+import zmq
+
 log = logging.getLogger("cubesat.zmq")
+
 
 class ZMQBridge:
     def __init__(self, endpoint: str = "tcp://127.0.0.1:5555"):

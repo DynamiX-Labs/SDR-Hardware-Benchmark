@@ -4,33 +4,30 @@ SatSDR-Universal - Main Entry Point
 DynamiX Labs | https://github.com/DynamiX-Labs
 """
 
-import click
 import logging
 import sys
 from pathlib import Path
 
+import click
 import colorlog
 
 # Setup Aerospace-Grade Console Logging
 handler = colorlog.StreamHandler()
-handler.setFormatter(colorlog.ColoredFormatter(
-    "%(log_color)s%(asctime)s [%(levelname)-8s] %(cyan)s%(name)s%(reset)s: %(message_log_color)s%(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%SZ",
-    reset=True,
-    log_colors={
-        'DEBUG':    'cyan',
-        'INFO':     'green',
-        'WARNING':  'yellow',
-        'ERROR':    'red',
-        'CRITICAL': 'red,bg_white',
-    },
-    secondary_log_colors={
-        'message': {
-            'ERROR':    'red',
-            'CRITICAL': 'red'
-        }
-    }
-))
+handler.setFormatter(
+    colorlog.ColoredFormatter(
+        "%(log_color)s%(asctime)s [%(levelname)-8s] %(cyan)s%(name)s%(reset)s: %(message_log_color)s%(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%SZ",
+        reset=True,
+        log_colors={
+            "DEBUG": "cyan",
+            "INFO": "green",
+            "WARNING": "yellow",
+            "ERROR": "red",
+            "CRITICAL": "red,bg_white",
+        },
+        secondary_log_colors={"message": {"ERROR": "red", "CRITICAL": "red"}},
+    )
+)
 
 logger = logging.getLogger()
 logger.addHandler(handler)
@@ -48,17 +45,29 @@ def cli(verbose):
 
 
 @cli.command()
-@click.option("--decoder", "-d", required=True,
-              type=click.Choice(["apt", "lrpt", "adsb", "ax25", "acars", "hrpt"]),
-              help="Decoder to use")
+@click.option(
+    "--decoder",
+    "-d",
+    required=True,
+    type=click.Choice(["apt", "lrpt", "adsb", "ax25", "acars", "hrpt"]),
+    help="Decoder to use",
+)
 @click.option("--freq", "-f", type=float, default=None, help="Center frequency in Hz")
-@click.option("--hardware", "-hw",
-              type=click.Choice(["rtlsdr", "hackrf", "pluto", "usrp_b200", "usrp_b210"]),
-              default="rtlsdr", help="SDR hardware")
-@click.option("--iq-file", type=click.Path(exists=True), default=None, help="IQ file to decode")
+@click.option(
+    "--hardware",
+    "-hw",
+    type=click.Choice(["rtlsdr", "hackrf", "pluto", "usrp_b200", "usrp_b210"]),
+    default="rtlsdr",
+    help="SDR hardware",
+)
+@click.option(
+    "--iq-file", type=click.Path(exists=True), default=None, help="IQ file to decode"
+)
 @click.option("--rate", type=float, default=250000, help="Sample rate in SPS")
 @click.option("--gain", type=float, default=30, help="RF gain in dB")
-@click.option("--output", "-o", type=click.Path(), default="./output", help="Output directory")
+@click.option(
+    "--output", "-o", type=click.Path(), default="./output", help="Output directory"
+)
 def decode(decoder, freq, hardware, iq_file, rate, gain, output):
     """Decode satellite signals from live SDR or IQ file."""
     from .decoders import get_decoder
@@ -86,13 +95,17 @@ def decode(decoder, freq, hardware, iq_file, rate, gain, output):
 
 
 @cli.command()
-@click.option("--hardware", "-hw",
-              type=click.Choice(["rtlsdr", "hackrf", "pluto", "usrp_b200"]),
-              default="rtlsdr")
+@click.option(
+    "--hardware",
+    "-hw",
+    type=click.Choice(["rtlsdr", "hackrf", "pluto", "usrp_b200"]),
+    default="rtlsdr",
+)
 @click.option("--duration", type=int, default=30, help="Benchmark duration in seconds")
 def benchmark(hardware, duration):
     """Run DSP performance benchmark."""
     from .dsp.benchmark import Benchmark
+
     bm = Benchmark(hardware=hardware, duration=duration)
     bm.run()
     bm.report()
@@ -102,6 +115,7 @@ def benchmark(hardware, duration):
 def list_decoders():
     """List all available decoders."""
     from .decoders import DECODER_REGISTRY
+
     click.echo("\nAvailable Decoders:\n" + "─" * 50)
     for name, cls in DECODER_REGISTRY.items():
         click.echo(f"  {name:12s} | {cls.FREQUENCY/1e6:.3f} MHz | {cls.MODULATION}")
@@ -121,6 +135,7 @@ def list_decoders():
 def stream(host, port, fps, fft_size, gpu, auth_token):
     """Start the WebSocket live spectrum streaming server."""
     import asyncio
+
     from .dsp.gpu_backend import GPUBackend
     from .dsp.spectral_engine import SpectralEngine
     from .streaming.spectrum_server import SpectrumServer
@@ -136,7 +151,8 @@ def stream(host, port, fps, fft_size, gpu, auth_token):
     )
 
     server = SpectrumServer(
-        host=host, port=port,
+        host=host,
+        port=port,
         spectral_engine=engine,
         gpu_backend=gpu_backend,
         auth_token=auth_token,
@@ -154,7 +170,9 @@ def stream(host, port, fps, fft_size, gpu, auth_token):
 @click.option("--frontend", default="tcp://*:5555", help="Client-facing ROUTER address")
 @click.option("--backend", default="tcp://*:5556", help="Worker-facing ROUTER address")
 @click.option("--monitor", default="tcp://*:5557", help="Monitor PUB address")
-@click.option("--heartbeat", type=float, default=5.0, help="Heartbeat check interval (s)")
+@click.option(
+    "--heartbeat", type=float, default=5.0, help="Heartbeat check interval (s)"
+)
 @click.option("--timeout", type=float, default=30.0, help="Worker timeout (s)")
 def broker(frontend, backend, monitor, heartbeat, timeout):
     """Start the distributed decoder job broker."""
@@ -175,21 +193,29 @@ def broker(frontend, backend, monitor, heartbeat, timeout):
 # Phase 3: Distributed Decoder Worker
 # ──────────────────────────────────────────────────────────────────────
 @cli.command()
-@click.option("--broker-addr", default="tcp://localhost:5556", help="Broker backend address")
+@click.option(
+    "--broker-addr", default="tcp://localhost:5556", help="Broker backend address"
+)
 @click.option("--worker-id", default=None, help="Worker identifier")
 @click.option("--gpu/--no-gpu", default=True, help="Enable GPU acceleration")
 @click.option("--concurrency", type=int, default=2, help="Max concurrent jobs")
-@click.option("--capabilities", default="", help="Comma-separated decoder types (empty=all)")
+@click.option(
+    "--capabilities", default="", help="Comma-separated decoder types (empty=all)"
+)
 def worker(broker_addr, worker_id, gpu, concurrency, capabilities):
     """Start a distributed decoder worker node."""
-    from .dsp.gpu_backend import GPUBackend
     from .cluster.worker import DecoderWorker
+    from .dsp.gpu_backend import GPUBackend
 
     gpu_backend = None
     if gpu:
         gpu_backend = GPUBackend()
 
-    caps = [c.strip() for c in capabilities.split(",") if c.strip()] if capabilities else []
+    caps = (
+        [c.strip() for c in capabilities.split(",") if c.strip()]
+        if capabilities
+        else []
+    )
 
     log.info("Starting decoder worker...")
     w = DecoderWorker(
@@ -231,12 +257,20 @@ def federation_node(station_id, lat, lon, hub, sub, capabilities):
     """Connect to the federation as a ground station node (API-only)."""
     from .federation import FederationNode
 
-    caps = [c.strip() for c in capabilities.split(",") if c.strip()] if capabilities else []
+    caps = (
+        [c.strip() for c in capabilities.split(",") if c.strip()]
+        if capabilities
+        else []
+    )
 
     log.info(f"Starting federation node: {station_id}")
     node = FederationNode(
-        station_id=station_id, lat=lat, lon=lon,
-        capabilities=caps, hub_addr=hub, sub_addr=sub,
+        station_id=station_id,
+        lat=lat,
+        lon=lon,
+        capabilities=caps,
+        hub_addr=hub,
+        sub_addr=sub,
     )
     node.start()
 
@@ -245,27 +279,41 @@ def federation_node(station_id, lat, lon, hub, sub, capabilities):
 # Phase 4: CFDP File Delivery
 # ──────────────────────────────────────────────────────────────────────
 @cli.command("cfdp-send")
-@click.option("--source", "-s", required=True, type=click.Path(exists=True),
-              help="Source file to send")
+@click.option(
+    "--source",
+    "-s",
+    required=True,
+    type=click.Path(exists=True),
+    help="Source file to send",
+)
 @click.option("--dest-path", "-d", default=None, help="Destination filename")
 @click.option("--entity-id", type=int, default=1, help="Local CFDP entity ID")
 @click.option("--peer-id", type=int, default=2, help="Destination entity ID")
 @click.option("--segment-size", type=int, default=1024, help="Segment size in bytes")
-@click.option("--mode", type=click.Choice(["class1", "class2"]), default="class1",
-              help="Transmission mode")
+@click.option(
+    "--mode",
+    type=click.Choice(["class1", "class2"]),
+    default="class1",
+    help="Transmission mode",
+)
 def cfdp_send(source, dest_path, entity_id, peer_id, segment_size, mode):
     """Send a file via CCSDS CFDP protocol (API-only, no GUI)."""
     from .protocols.cfdp import CFDPSender, TransmissionMode
 
-    tx_mode = (TransmissionMode.UNACKNOWLEDGED if mode == "class1"
-               else TransmissionMode.ACKNOWLEDGED)
+    tx_mode = (
+        TransmissionMode.UNACKNOWLEDGED
+        if mode == "class1"
+        else TransmissionMode.ACKNOWLEDGED
+    )
 
     pdu_count = [0]
+
     def count_transport(pdu_bytes):
         pdu_count[0] += 1
 
     sender = CFDPSender(
-        entity_id=entity_id, peer_id=peer_id,
+        entity_id=entity_id,
+        peer_id=peer_id,
         transport=count_transport,
         segment_size=segment_size,
         transmission_mode=tx_mode,

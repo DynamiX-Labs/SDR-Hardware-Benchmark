@@ -4,10 +4,10 @@ Decodes AX.25 UI frames used by amateur CubeSats.
 DynamiX Labs
 """
 
+import logging
 import struct
 from dataclasses import dataclass, field
-from typing import Optional, List
-import logging
+from typing import List, Optional
 
 log = logging.getLogger("cubesat.ax25")
 
@@ -15,12 +15,13 @@ log = logging.getLogger("cubesat.ax25")
 @dataclass
 class AX25Frame:
     """Parsed AX.25 frame."""
+
     destination: str = ""
     source: str = ""
     digipeaters: List[str] = field(default_factory=list)
-    pid: int = 0xF0          # Protocol ID
-    info: bytes = b""        # Information field (payload)
-    frame_type: str = "UI"   # UI = Unnumbered Information
+    pid: int = 0xF0  # Protocol ID
+    info: bytes = b""  # Information field (payload)
+    frame_type: str = "UI"  # UI = Unnumbered Information
     raw: bytes = b""
 
 
@@ -79,20 +80,20 @@ class AX25Parser:
         offset = 0
 
         # Destination address (7 bytes)
-        dest_raw = frame_data[offset:offset + 7]
+        dest_raw = frame_data[offset : offset + 7]
         dest_call, dest_ssid, _ = cls._decode_callsign(dest_raw)
         frame.destination = f"{dest_call}-{dest_ssid}" if dest_ssid else dest_call
         offset += 7
 
         # Source address (7 bytes)
-        src_raw = frame_data[offset:offset + 7]
+        src_raw = frame_data[offset : offset + 7]
         src_call, src_ssid, has_more = cls._decode_callsign(src_raw)
         frame.source = f"{src_call}-{src_ssid}" if src_ssid else src_call
         offset += 7
 
         # Digipeater addresses (7 bytes each, while has_more)
         while has_more and offset + 7 <= len(frame_data):
-            digi_raw = frame_data[offset:offset + 7]
+            digi_raw = frame_data[offset : offset + 7]
             digi_call, digi_ssid, has_more = cls._decode_callsign(digi_raw)
             digi = f"{digi_call}-{digi_ssid}" if digi_ssid else digi_call
             frame.digipeaters.append(digi)
@@ -119,7 +120,9 @@ class AX25Parser:
             info_end -= 2  # Remove FCS
         frame.info = frame_data[offset:info_end]
 
-        log.debug(f"AX.25: {frame.source} → {frame.destination} | PID=0x{frame.pid:02X} | {len(frame.info)}B")
+        log.debug(
+            f"AX.25: {frame.source} → {frame.destination} | PID=0x{frame.pid:02X} | {len(frame.info)}B"
+        )
         return frame
 
     @classmethod

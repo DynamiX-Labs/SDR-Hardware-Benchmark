@@ -4,11 +4,12 @@ All satellite decoders inherit from this class.
 DynamiX Labs
 """
 
-from abc import ABC, abstractmethod
-from pathlib import Path
-import numpy as np
 import logging
 import traceback
+from abc import ABC, abstractmethod
+from pathlib import Path
+
+import numpy as np
 from rich.console import Console
 
 console = Console()
@@ -18,10 +19,10 @@ class BaseDecoder(ABC):
     """Abstract base class for all satellite signal decoders."""
 
     NAME: str = "base"
-    FREQUENCY: float = 0.0       # Default center frequency (Hz)
+    FREQUENCY: float = 0.0  # Default center frequency (Hz)
     MODULATION: str = "unknown"  # FM, BPSK, QPSK, GMSK, etc.
-    BAUDRATE: int = 0            # Symbol rate (baud)
-    BANDWIDTH: float = 0.0       # Required RF bandwidth (Hz)
+    BAUDRATE: int = 0  # Symbol rate (baud)
+    BANDWIDTH: float = 0.0  # Required RF bandwidth (Hz)
 
     def __init__(self, sample_rate: float = 250_000, output_dir: str = "./output"):
         self.sample_rate = sample_rate

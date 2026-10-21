@@ -3,9 +3,9 @@ Tests for SDRHardwareBenchmark Suite
 DynamiX Labs | Advanced Hardware Integration
 """
 
-import pytest
 import numpy as np
-from src.benchmarks.dsp_benchmark import SDRHardwareBenchmark, BenchmarkResult
+import pytest
+from src.benchmarks.dsp_benchmark import BenchmarkResult, SDRHardwareBenchmark
 
 
 class TestSDRHardwareBenchmark:

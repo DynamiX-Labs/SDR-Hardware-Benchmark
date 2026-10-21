@@ -3,13 +3,15 @@ Tests for Advanced Multi-SDR Coherent Combiner
 DynamiX Labs | Advanced Hardware Integration
 """
 
-import pytest
-import numpy as np
 import os
 import sys
 
+import numpy as np
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from utils.coherent_combiner import CoherentCombiner, SDRStream, StreamHealth, CombinerMetrics
+from utils.coherent_combiner import (CoherentCombiner, CombinerMetrics,
+                                     SDRStream, StreamHealth)
 
 
 class TestCoherentCombiner:
@@ -63,7 +65,10 @@ class TestCoherentCombiner:
         """Verify cross-correlation lag and phase alignment."""
         n = 8192
         t = np.arange(n) / 2.4e6
-        ref = (np.exp(2j * np.pi * 50e3 * t) + 0.05 * (np.random.randn(n) + 1j * np.random.randn(n))).astype(np.complex64)
+        ref = (
+            np.exp(2j * np.pi * 50e3 * t)
+            + 0.05 * (np.random.randn(n) + 1j * np.random.randn(n))
+        ).astype(np.complex64)
 
         # Target delayed by 10 samples and phase-shifted by pi/3
         delay = 10
@@ -88,7 +93,10 @@ class TestCoherentCombiner:
         snr_clean = combiner._estimate_snr(clean_tone)
         assert snr_clean > 10.0
 
-        noisy = clean_tone + (np.random.randn(n) + 1j * np.random.randn(n)).astype(np.complex64) * 0.8
+        noisy = (
+            clean_tone
+            + (np.random.randn(n) + 1j * np.random.randn(n)).astype(np.complex64) * 0.8
+        )
         snr_noisy = combiner._estimate_snr(noisy)
         assert snr_clean > snr_noisy
 
@@ -106,8 +114,12 @@ class TestCoherentCombiner:
         t = np.arange(n) / 2.4e6
         signal = np.exp(2j * np.pi * 20e3 * t).astype(np.complex64)
 
-        noise1 = (np.random.randn(n) + 1j * np.random.randn(n)).astype(np.complex64) * 0.3
-        noise2 = (np.random.randn(n) + 1j * np.random.randn(n)).astype(np.complex64) * 0.3
+        noise1 = (np.random.randn(n) + 1j * np.random.randn(n)).astype(
+            np.complex64
+        ) * 0.3
+        noise2 = (np.random.randn(n) + 1j * np.random.randn(n)).astype(
+            np.complex64
+        ) * 0.3
 
         s1.push(signal + noise1)
         s2.push(signal + noise2)
@@ -122,12 +134,15 @@ class TestCoherentCombiner:
 
     def test_device_lifecycle(self, combiner):
         """Test add_device in fallback mode, read, and stop_all."""
-        combiner.add_device("sim1", "rtlsdr", frequency=100e6, sample_rate=2.4e6, buffer_size=65536)
+        combiner.add_device(
+            "sim1", "rtlsdr", frequency=100e6, sample_rate=2.4e6, buffer_size=65536
+        )
         assert "sim1" in combiner.streams
         assert combiner.streams["sim1"].active is True
 
         # Let background thread capture a few samples
         import time
+
         time.sleep(0.1)
 
         samples = combiner.read_stream("sim1", 1024)

@@ -26,22 +26,25 @@ Usage:
     combiner.stop_all()
 """
 
-import numpy as np
-import threading
 import logging
+import threading
 import time
-from dataclasses import dataclass, field
-from typing import Dict, Optional, List, Tuple
 from collections import deque
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 log = logging.getLogger("satsdr.combiner")
 
 
 # ─── Data Classes ────────────────────────────────────────────────────────
 
+
 @dataclass
 class StreamHealth:
     """Health metrics for a single SDR stream."""
+
     device_id: str = ""
     active: bool = False
     total_samples: int = 0
@@ -73,6 +76,7 @@ class StreamHealth:
 @dataclass
 class CombinerMetrics:
     """Aggregated metrics for the coherent combiner."""
+
     total_devices: int = 0
     active_devices: int = 0
     total_combined_samples: int = 0
@@ -92,6 +96,7 @@ class CombinerMetrics:
 
 
 # ─── Stream Container ────────────────────────────────────────────────────
+
 
 class SDRStream:
     """
@@ -118,6 +123,7 @@ class SDRStream:
     def initialize_buffer(self):
         """Create the shared-memory ring buffer."""
         from .usb_transport import SharedRingBuffer
+
         self._ring = SharedRingBuffer(
             capacity_samples=self._buffer_size,
             name=f"sdr_{self.device_id}_{id(self)}",
@@ -171,6 +177,7 @@ class SDRStream:
 
 # ─── Coherent Combiner ───────────────────────────────────────────────────
 
+
 class CoherentCombiner:
     """
     Advanced multi-SDR coherent combining engine.
@@ -197,10 +204,16 @@ class CoherentCombiner:
         self._default_buffer_size = default_buffer_size
         self.metrics = CombinerMetrics()
 
-    def add_device(self, device_id: str, hardware_type: str,
-                   frequency: float, sample_rate: float,
-                   gain: float = 30.0, buffer_size: int = None,
-                   device_index: int = 0):
+    def add_device(
+        self,
+        device_id: str,
+        hardware_type: str,
+        frequency: float,
+        sample_rate: float,
+        gain: float = 30.0,
+        buffer_size: int = None,
+        device_index: int = 0,
+    ):
         """
         Register, configure, and start streaming from an SDR device.
 
@@ -265,8 +278,7 @@ class CoherentCombiner:
             stream.health.last_error = str(e)
             stream.health.error_count += 1
 
-    def _capture_loop(self, device_id: str, hw, stream: SDRStream,
-                       chunk: int = 65536):
+    def _capture_loop(self, device_id: str, hw, stream: SDRStream, chunk: int = 65536):
         """Background capture thread for one SDR device."""
         log.debug(f"Capture loop started for {device_id}")
 
@@ -314,8 +326,9 @@ class CoherentCombiner:
 
     # ── Coherent Combining (MRC) ──
 
-    def coherent_combine(self, device_ids: List[str],
-                          n_samples: int = 65536) -> Optional[np.ndarray]:
+    def coherent_combine(
+        self, device_ids: List[str], n_samples: int = 65536
+    ) -> Optional[np.ndarray]:
         """
         Coherently combine IQ streams from multiple antennas
         using Maximum Ratio Combining (MRC).
@@ -392,8 +405,9 @@ class CoherentCombiner:
 
         return combined
 
-    def _align_streams(self, reference: np.ndarray,
-                       target: np.ndarray) -> Tuple[np.ndarray, float]:
+    def _align_streams(
+        self, reference: np.ndarray, target: np.ndarray
+    ) -> Tuple[np.ndarray, float]:
         """
         Align target stream to reference using cross-correlation.
 
@@ -404,7 +418,7 @@ class CoherentCombiner:
         ref_chunk = reference[:n]
         tgt_chunk = target[:n]
 
-        correlation = np.correlate(ref_chunk, tgt_chunk, mode='full')
+        correlation = np.correlate(ref_chunk, tgt_chunk, mode="full")
         peak_idx = np.argmax(np.abs(correlation))
         lag = peak_idx - (n - 1)
 
@@ -419,9 +433,7 @@ class CoherentCombiner:
         # Phase correction: rotate target to match reference phase
         # Use mean phase difference over a window
         n_phase = min(len(ref_chunk), len(aligned))
-        phase_diff = np.angle(
-            np.sum(ref_chunk[:n_phase] * np.conj(aligned[:n_phase]))
-        )
+        phase_diff = np.angle(np.sum(ref_chunk[:n_phase] * np.conj(aligned[:n_phase])))
         aligned *= np.exp(1j * phase_diff)
 
         return aligned, float(phase_diff)
@@ -451,8 +463,9 @@ class CoherentCombiner:
 
     # ── Wideband Spectrum Stitching ──
 
-    def stitch_spectrum(self, device_ids: List[str],
-                         n_fft: int = 4096) -> Optional[Tuple[np.ndarray, np.ndarray]]:
+    def stitch_spectrum(
+        self, device_ids: List[str], n_fft: int = 4096
+    ) -> Optional[Tuple[np.ndarray, np.ndarray]]:
         """
         Combine spectra from SDRs tuned to adjacent bands to create
         a seamless wideband spectrum view.
@@ -574,9 +587,7 @@ class CoherentCombiner:
             del self.streams[device_id]
 
         self.metrics.total_devices -= 1
-        self.metrics.active_devices = sum(
-            1 for s in self.streams.values() if s.active
-        )
+        self.metrics.active_devices = sum(1 for s in self.streams.values() if s.active)
         log.info(f"Removed device '{device_id}'")
 
     def stop_all(self):

@@ -13,27 +13,26 @@ Usage:
     worker.start()   # blocking
 """
 
+import logging
 import threading
 import time
 import uuid
-import logging
-from typing import Optional, List
-from concurrent.futures import ThreadPoolExecutor, Future
+from concurrent.futures import Future, ThreadPoolExecutor
+from typing import List, Optional
 
 log = logging.getLogger("satsdr.cluster.worker")
 
 try:
     import zmq  # type: ignore[import-untyped]
+
     _ZMQ_AVAILABLE = True
 except ImportError:
     _ZMQ_AVAILABLE = False
 
 import numpy as np
 
-from .models import (
-    DecodeJob, DecodeResult, JobStatus, WorkerInfo,
-    serialize, deserialize,
-)
+from .models import (DecodeJob, DecodeResult, JobStatus, WorkerInfo,
+                     deserialize, serialize)
 
 # Wire-level command constants (must match broker.py)
 CMD_READY = b"READY"
@@ -108,7 +107,9 @@ class DecoderWorker:
 
         log.info(f"Worker {self.worker_id} connecting to broker at {self.broker_addr}")
         log.info(f"  Capabilities: {self.capabilities or ['all']}")
-        log.info(f"  GPU: {'enabled' if self.gpu and self.gpu.gpu_available else 'disabled'}")
+        log.info(
+            f"  GPU: {'enabled' if self.gpu and self.gpu.gpu_available else 'disabled'}"
+        )
         log.info(f"  Max concurrent: {self.max_concurrent}")
 
         # Register with broker
@@ -144,8 +145,10 @@ class DecoderWorker:
             socket.send_multipart([b"", CMD_DISCONNECT])
             socket.close()
             ctx.term()
-            log.info(f"Worker {self.worker_id} shut down | "
-                     f"processed={self._jobs_processed} failed={self._jobs_failed}")
+            log.info(
+                f"Worker {self.worker_id} shut down | "
+                f"processed={self._jobs_processed} failed={self._jobs_failed}"
+            )
 
     def stop(self):
         """Signal the worker to stop."""
@@ -168,10 +171,13 @@ class DecoderWorker:
 
     def _send_heartbeat(self, socket):
         """Send periodic heartbeat to broker."""
-        socket.send_multipart([
-            b"", CMD_HEARTBEAT,
-            serialize({"active_jobs": self._active_jobs}),
-        ])
+        socket.send_multipart(
+            [
+                b"",
+                CMD_HEARTBEAT,
+                serialize({"active_jobs": self._active_jobs}),
+            ]
+        )
 
     # ------------------------------------------------------------------
     # Internal: Message handler
@@ -237,7 +243,11 @@ class DecoderWorker:
                 metrics={
                     "decode_time_s": round(decode_time, 3),
                     "samples_processed": len(samples),
-                    "result_keys": list(result_data.keys()) if isinstance(result_data, dict) else [],
+                    "result_keys": (
+                        list(result_data.keys())
+                        if isinstance(result_data, dict)
+                        else []
+                    ),
                 },
             )
 
@@ -282,9 +292,7 @@ class DecoderWorker:
     # ------------------------------------------------------------------
     def _collect_results(self, socket):
         """Check for completed futures and send results to broker."""
-        completed = [
-            jid for jid, fut in self._futures.items() if fut.done()
-        ]
+        completed = [jid for jid, fut in self._futures.items() if fut.done()]
 
         for job_id in completed:
             future = self._futures.pop(job_id)

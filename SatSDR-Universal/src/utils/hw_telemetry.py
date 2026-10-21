@@ -22,28 +22,31 @@ Usage:
     telemetry.stop()
 """
 
-import numpy as np
-import logging
-import time
-import threading
 import json
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Callable
-from datetime import datetime, timezone
+import logging
+import threading
+import time
 from collections import deque
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Callable, Dict, List, Optional
+
+import numpy as np
 
 log = logging.getLogger("satsdr.telemetry")
 
 
 # ─── Data Classes ────────────────────────────────────────────────────────
 
+
 @dataclass
 class TelemetryEvent:
     """A structured hardware event with timing metadata."""
-    timestamp: str            # ISO 8601
-    timestamp_us: float       # perf_counter for sub-us precision
-    event_type: str           # "info", "warning", "error", "critical"
-    category: str             # "connect", "config", "temperature", "snr", etc.
+
+    timestamp: str  # ISO 8601
+    timestamp_us: float  # perf_counter for sub-us precision
+    event_type: str  # "info", "warning", "error", "critical"
+    category: str  # "connect", "config", "temperature", "snr", etc.
     message: str = ""
     data: Dict = field(default_factory=dict)
 
@@ -63,10 +66,11 @@ class TelemetryEvent:
 @dataclass
 class ThermalStatus:
     """Thermal health status."""
+
     temperature_c: float = 0.0
     max_temperature_c: float = 0.0
     throttling: bool = False
-    source: str = "unknown"   # "uhd", "iio", "estimated", "unavailable"
+    source: str = "unknown"  # "uhd", "iio", "estimated", "unavailable"
 
     def to_dict(self) -> dict:
         return {
@@ -80,9 +84,10 @@ class ThermalStatus:
 @dataclass
 class ClockStatus:
     """Oscillator clock drift status."""
+
     drift_ppm: float = 0.0
     drift_rate_ppm_per_hour: float = 0.0
-    reference: str = "none"     # "gpsdo", "ntp", "internal"
+    reference: str = "none"  # "gpsdo", "ntp", "internal"
     locked: bool = False
     measurements: int = 0
 
@@ -99,6 +104,7 @@ class ClockStatus:
 @dataclass
 class HealthSnapshot:
     """Complete health snapshot at a point in time."""
+
     timestamp: str = ""
     device_name: str = ""
     driver: str = ""
@@ -143,19 +149,22 @@ class HealthSnapshot:
 
 # ─── Telemetry Thresholds ───────────────────────────────────────────────
 
+
 @dataclass
 class TelemetryThresholds:
     """Configurable thresholds for degradation detection."""
-    max_temperature_c: float = 70.0        # Warn if above this
-    critical_temperature_c: float = 85.0   # Error if above this
-    min_snr_db: float = 10.0               # Warn if SNR drops below
-    max_drop_rate_pct: float = 1.0         # Warn if drops exceed
-    max_buffer_utilization: float = 0.9    # Warn if buffer nearly full
-    max_clock_drift_ppm: float = 10.0      # Warn if drift exceeds
-    sample_rate_tolerance_pct: float = 5.0 # Warn if rate deviates
+
+    max_temperature_c: float = 70.0  # Warn if above this
+    critical_temperature_c: float = 85.0  # Error if above this
+    min_snr_db: float = 10.0  # Warn if SNR drops below
+    max_drop_rate_pct: float = 1.0  # Warn if drops exceed
+    max_buffer_utilization: float = 0.9  # Warn if buffer nearly full
+    max_clock_drift_ppm: float = 10.0  # Warn if drift exceeds
+    sample_rate_tolerance_pct: float = 5.0  # Warn if rate deviates
 
 
 # ─── Hardware Telemetry Engine ───────────────────────────────────────────
+
 
 class HardwareTelemetry:
     """
@@ -176,9 +185,13 @@ class HardwareTelemetry:
         Alert thresholds
     """
 
-    def __init__(self, hw_manager, interval_s: float = 1.0,
-                 max_events: int = 10000,
-                 thresholds: TelemetryThresholds = None):
+    def __init__(
+        self,
+        hw_manager,
+        interval_s: float = 1.0,
+        max_events: int = 10000,
+        thresholds: TelemetryThresholds = None,
+    ):
         self._hw = hw_manager
         self._interval = interval_s
         self._thresholds = thresholds or TelemetryThresholds()
@@ -221,9 +234,14 @@ class HardwareTelemetry:
             name="hw-telemetry",
         )
         self._thread.start()
-        self._log_event("info", "telemetry", "Monitoring started", {
-            "interval_s": self._interval,
-        })
+        self._log_event(
+            "info",
+            "telemetry",
+            "Monitoring started",
+            {
+                "interval_s": self._interval,
+            },
+        )
         log.info(f"Hardware telemetry started (interval={self._interval}s)")
 
     def stop(self):
@@ -261,10 +279,10 @@ class HardwareTelemetry:
         snap.timestamp = datetime.now(timezone.utc).isoformat()
 
         # Device info
-        if hasattr(self._hw, 'device_profile'):
+        if hasattr(self._hw, "device_profile"):
             snap.device_name = self._hw.device_profile.device_name
             snap.driver = self._hw.device_profile.driver
-        snap.sample_rate_requested = getattr(self._hw, 'sample_rate', 0)
+        snap.sample_rate_requested = getattr(self._hw, "sample_rate", 0)
 
         # Signal quality measurement
         try:
@@ -278,16 +296,18 @@ class HardwareTelemetry:
             pass
 
         # Streaming health
-        if hasattr(self._hw, 'streaming_stats'):
+        if hasattr(self._hw, "streaming_stats"):
             stats = self._hw.streaming_stats()
-            snap.sample_rate_actual = stats.get('actual_sps', 0)
-            snap.drop_rate_pct = stats.get('dropped_chunks', 0) / max(
-                stats.get('total_samples', 1) / 65536, 1
-            ) * 100
-            snap.buffer_utilization = stats.get('buffer_utilization', 0)
-        elif hasattr(self._hw, 'dropped_sample_stats'):
+            snap.sample_rate_actual = stats.get("actual_sps", 0)
+            snap.drop_rate_pct = (
+                stats.get("dropped_chunks", 0)
+                / max(stats.get("total_samples", 1) / 65536, 1)
+                * 100
+            )
+            snap.buffer_utilization = stats.get("buffer_utilization", 0)
+        elif hasattr(self._hw, "dropped_sample_stats"):
             drop_stats = self._hw.dropped_sample_stats()
-            snap.drop_rate_pct = drop_stats.get('drop_rate_pct', 0)
+            snap.drop_rate_pct = drop_stats.get("drop_rate_pct", 0)
 
         # Temperature
         snap.thermal = self._read_temperature()
@@ -332,18 +352,21 @@ class HardwareTelemetry:
 
         # Try UHD (USRP) temperature sensor
         try:
-            if hasattr(self._hw, '_sdr') and self._hw._sdr is not None:
+            if hasattr(self._hw, "_sdr") and self._hw._sdr is not None:
                 sdr = self._hw._sdr
-                if hasattr(sdr, 'listSensors'):
+                if hasattr(sdr, "listSensors"):
                     sensors = sdr.listSensors()
                     for sensor in sensors:
-                        if 'temp' in sensor.lower():
+                        if "temp" in sensor.lower():
                             val = sdr.readSensor(sensor)
                             thermal.temperature_c = float(val)
                             thermal.source = "sensor"
                             if thermal.temperature_c > thermal.max_temperature_c:
                                 thermal.max_temperature_c = thermal.temperature_c
-                            thermal.throttling = thermal.temperature_c > self._thresholds.max_temperature_c
+                            thermal.throttling = (
+                                thermal.temperature_c
+                                > self._thresholds.max_temperature_c
+                            )
                             return thermal
         except Exception:
             pass
@@ -358,12 +381,13 @@ class HardwareTelemetry:
         # Use NTP for time reference
         try:
             import ntplib
+
             ntp = ntplib.NTPClient()
-            response = ntp.request('pool.ntp.org', version=3)
+            response = ntp.request("pool.ntp.org", version=3)
             offset_s = response.offset
 
             # Convert NTP offset to PPM relative to sample rate
-            if hasattr(self._hw, 'sample_rate') and self._hw.sample_rate > 0:
+            if hasattr(self._hw, "sample_rate") and self._hw.sample_rate > 0:
                 clock.drift_ppm = offset_s * 1e6
                 clock.reference = "ntp"
                 clock.locked = abs(offset_s) < 0.01  # 10ms
@@ -400,9 +424,14 @@ class HardwareTelemetry:
             if snapshot.thermal.temperature_c > self._thresholds.critical_temperature_c:
                 alert = f"CRITICAL: Temperature {snapshot.thermal.temperature_c:.1f}°C exceeds limit"
                 alerts.append(alert)
-                self._log_event("critical", "temperature", alert, {
-                    "temperature_C": snapshot.thermal.temperature_c,
-                })
+                self._log_event(
+                    "critical",
+                    "temperature",
+                    alert,
+                    {
+                        "temperature_C": snapshot.thermal.temperature_c,
+                    },
+                )
             elif snapshot.thermal.temperature_c > self._thresholds.max_temperature_c:
                 alert = f"WARNING: Temperature {snapshot.thermal.temperature_c:.1f}°C is high"
                 alerts.append(alert)
@@ -417,7 +446,9 @@ class HardwareTelemetry:
         # SNR trend detection (degradation over time)
         if len(self._snr_history) >= 10:
             recent = list(self._snr_history)[-10:]
-            earlier = list(self._snr_history)[:10] if len(self._snr_history) >= 20 else recent
+            earlier = (
+                list(self._snr_history)[:10] if len(self._snr_history) >= 20 else recent
+            )
             snr_trend = np.mean(recent) - np.mean(earlier)
             if snr_trend < -5.0:
                 alert = f"SNR degrading: {snr_trend:.1f} dB trend"
@@ -438,9 +469,11 @@ class HardwareTelemetry:
 
         # Sample rate deviation
         if snapshot.sample_rate_requested > 0 and snapshot.sample_rate_actual > 0:
-            deviation = abs(
-                snapshot.sample_rate_actual - snapshot.sample_rate_requested
-            ) / snapshot.sample_rate_requested * 100
+            deviation = (
+                abs(snapshot.sample_rate_actual - snapshot.sample_rate_requested)
+                / snapshot.sample_rate_requested
+                * 100
+            )
             if deviation > self._thresholds.sample_rate_tolerance_pct:
                 alert = f"Sample rate deviation: {deviation:.1f}%"
                 alerts.append(alert)
@@ -493,8 +526,9 @@ class HardwareTelemetry:
 
     # ── Event Logging ──
 
-    def _log_event(self, event_type: str, category: str,
-                   message: str, data: dict = None):
+    def _log_event(
+        self, event_type: str, category: str, message: str, data: dict = None
+    ):
         """Log a structured telemetry event."""
         event = TelemetryEvent(
             timestamp=datetime.now(timezone.utc).isoformat(),
@@ -517,9 +551,13 @@ class HardwareTelemetry:
 
     # ── MQTT Export ──
 
-    def configure_mqtt(self, broker: str = "localhost", port: int = 1883,
-                       topic: str = "satsdr/telemetry",
-                       client_id: str = "satsdr_telemetry"):
+    def configure_mqtt(
+        self,
+        broker: str = "localhost",
+        port: int = 1883,
+        topic: str = "satsdr/telemetry",
+        client_id: str = "satsdr_telemetry",
+    ):
         """
         Configure MQTT export for remote monitoring.
 
@@ -544,9 +582,14 @@ class HardwareTelemetry:
             self._mqtt_client.loop_start()
             self._mqtt_topic = topic
 
-            self._log_event("info", "mqtt", f"MQTT connected to {broker}:{port}", {
-                "topic": topic,
-            })
+            self._log_event(
+                "info",
+                "mqtt",
+                f"MQTT connected to {broker}:{port}",
+                {
+                    "topic": topic,
+                },
+            )
 
         except ImportError:
             log.warning("paho-mqtt not installed — MQTT export disabled")
@@ -584,8 +627,9 @@ class HardwareTelemetry:
             return self._snapshots[-1].to_dict()
         return {"status": "no data"}
 
-    def events(self, n: int = 100, category: str = None,
-               event_type: str = None) -> List[dict]:
+    def events(
+        self, n: int = 100, category: str = None, event_type: str = None
+    ) -> List[dict]:
         """
         Get recent events, optionally filtered.
 

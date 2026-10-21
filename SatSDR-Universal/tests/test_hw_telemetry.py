@@ -3,20 +3,16 @@ Tests for Real-Time Hardware Telemetry Engine
 DynamiX Labs | Advanced Hardware Integration
 """
 
-import pytest
 import os
 import sys
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from utils.hardware import HardwareManager
-from utils.hw_telemetry import (
-    HardwareTelemetry,
-    TelemetryEvent,
-    ThermalStatus,
-    ClockStatus,
-    HealthSnapshot,
-    TelemetryThresholds,
-)
+from utils.hw_telemetry import (ClockStatus, HardwareTelemetry, HealthSnapshot,
+                                TelemetryEvent, TelemetryThresholds,
+                                ThermalStatus)
 
 
 class TestHardwareTelemetry:
@@ -49,12 +45,16 @@ class TestHardwareTelemetry:
 
     def test_thermal_and_clock_dataclasses(self):
         """Verify ThermalStatus and ClockStatus serialization."""
-        ts = ThermalStatus(temperature_c=48.5, max_temperature_c=52.0, throttling=False, source="uhd")
+        ts = ThermalStatus(
+            temperature_c=48.5, max_temperature_c=52.0, throttling=False, source="uhd"
+        )
         d_ts = ts.to_dict()
         assert d_ts["temperature_C"] == 48.5
         assert d_ts["throttling"] is False
 
-        cs = ClockStatus(drift_ppm=1.25, drift_rate_ppm_per_hour=0.05, reference="gpsdo", locked=True)
+        cs = ClockStatus(
+            drift_ppm=1.25, drift_rate_ppm_per_hour=0.05, reference="gpsdo", locked=True
+        )
         d_cs = cs.to_dict()
         assert d_cs["drift_ppm"] == 1.25
         assert d_cs["locked"] is True
@@ -72,6 +72,7 @@ class TestHardwareTelemetry:
         assert telemetry.is_active is True
 
         import time
+
         time.sleep(0.3)
 
         status = telemetry.status()

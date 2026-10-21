@@ -7,8 +7,8 @@ Ported from gr-satellites hdlc_deframer.py.
 DynamiX Labs
 """
 
-import struct
 import logging
+import struct
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -37,6 +37,7 @@ def crc_ccitt(data: bytes) -> int:
 @dataclass
 class HDLCFrame:
     """Parsed HDLC frame."""
+
     address: int = 0xFF
     control: int = 0x03
     payload: bytes = b""
@@ -76,7 +77,7 @@ class HDLCDeframer:
         for i in range(0, len(bits) - 7, 8):
             byte = 0
             for j in range(8):
-                byte |= (bits[i + j] << j)
+                byte |= bits[i + j] << j
             result.append(byte)
         return bytes(result)
 
@@ -118,7 +119,7 @@ class HDLCDeframer:
 
         while i < len(bitstream) - 7:
             # Check for flag pattern (0x7E = 01111110)
-            if bitstream[i:i + 8] == self.FLAG_BITS:
+            if bitstream[i : i + 8] == self.FLAG_BITS:
                 if self._in_frame and len(self._buffer) > 0:
                     # End of frame — process buffered bits
                     frame = self._process_frame_bits(self._buffer)
@@ -141,6 +142,7 @@ class HDLCDeframer:
     def process_bytes(self, data: bytes) -> List[HDLCFrame]:
         """Process a byte stream by converting to bits first."""
         import numpy as np
+
         bits = list(np.unpackbits(np.frombuffer(data, dtype=np.uint8)))
         return self.process_bits(bits)
 
@@ -169,7 +171,7 @@ class HDLCDeframer:
             while end < len(data) - 1 and data[end + 1] == self.FLAG:
                 end += 1
 
-            frame_data = data[start + 1:end]
+            frame_data = data[start + 1 : end]
 
             if len(frame_data) >= self.MIN_FRAME_BYTES:
                 frame = self._parse_frame_bytes(frame_data)
@@ -207,12 +209,14 @@ class HDLCDeframer:
         # Verify CRC over all bytes except FCS
         content = frame_bytes[:-2]
         computed_crc = crc_ccitt(content)
-        frame.fcs_valid = (computed_crc == fcs_received)
+        frame.fcs_valid = computed_crc == fcs_received
 
         if not frame.fcs_valid:
             self._frames_failed_crc += 1
-            log.debug(f"HDLC CRC mismatch: computed=0x{computed_crc:04X}, "
-                       f"received=0x{fcs_received:04X}")
+            log.debug(
+                f"HDLC CRC mismatch: computed=0x{computed_crc:04X}, "
+                f"received=0x{fcs_received:04X}"
+            )
         else:
             self._frames_decoded += 1
 

@@ -9,11 +9,12 @@ Extended benchmark suite inspired by:
 DynamiX Labs
 """
 
-import numpy as np
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-import logging
+
+import numpy as np
 
 log = logging.getLogger("benchmark.dsp")
 
@@ -45,6 +46,7 @@ def get_categories() -> List[str]:
 
 # ── Data Classes ─────────────────────────────────────────────────────────
 
+
 @dataclass
 class BenchmarkResult:
     name: str
@@ -52,7 +54,7 @@ class BenchmarkResult:
     min_ms: float
     max_ms: float
     std_ms: float
-    throughput: float       # Ops/sec
+    throughput: float  # Ops/sec
     iterations: int
     notes: str = ""
     p50_ms: float = 0.0
@@ -93,6 +95,7 @@ class DSPBenchmarkReport:
 
 # ── Main Benchmark Engine ────────────────────────────────────────────────
 
+
 class DSPBenchmark:
     """Comprehensive DSP operation benchmark suite."""
 
@@ -100,8 +103,9 @@ class DSPBenchmark:
         self.n = n_samples
         self.iterations = iterations
         # Pre-generate test data
-        self.samples = (np.random.randn(n_samples) +
-                        1j * np.random.randn(n_samples)).astype(np.complex64)
+        self.samples = (
+            np.random.randn(n_samples) + 1j * np.random.randn(n_samples)
+        ).astype(np.complex64)
         self.real_samples = np.random.randn(n_samples).astype(np.float32)
         # Byte stream for FEC benchmarks
         self.byte_stream = np.random.bytes(n_samples // 8)
@@ -120,8 +124,9 @@ class DSPBenchmark:
 
         return np.array(times)
 
-    def _make_result(self, name: str, times: np.ndarray,
-                     category: str = "", notes: str = "") -> BenchmarkResult:
+    def _make_result(
+        self, name: str, times: np.ndarray, category: str = "", notes: str = ""
+    ) -> BenchmarkResult:
         """Build BenchmarkResult with percentile stats from raw timing data."""
         mean = float(np.mean(times))
         return BenchmarkResult(
@@ -154,35 +159,41 @@ class DSPBenchmark:
     def bench_fir_filter(self, n_taps: int = 127) -> BenchmarkResult:
         """Benchmark FIR filtering."""
         from scipy.signal import firwin, lfilter
+
         taps = firwin(n_taps, 0.4)
         data = self.real_samples.copy()
         times = self._time_fn(lambda: lfilter(taps, 1.0, data))
         return self._make_result(f"FIR {n_taps}-tap", times, category="fir")
 
-    def bench_rrc_filter(self, n_taps: int = 31, sps: float = 2.0,
-                         alpha: float = 0.35) -> BenchmarkResult:
+    def bench_rrc_filter(
+        self, n_taps: int = 31, sps: float = 2.0, alpha: float = 0.35
+    ) -> BenchmarkResult:
         """Benchmark Root Raised Cosine filter (SatDump rrc category)."""
         from scipy.signal import firwin, lfilter
 
         # Generate RRC taps via windowed-sinc approximation
         t = np.arange(-n_taps // 2, n_taps // 2 + 1) / sps
-        with np.errstate(divide='ignore', invalid='ignore'):
-            num = np.sin(np.pi * t * (1 - alpha)) + 4 * alpha * t * np.cos(np.pi * t * (1 + alpha))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            num = np.sin(np.pi * t * (1 - alpha)) + 4 * alpha * t * np.cos(
+                np.pi * t * (1 + alpha)
+            )
             den = np.pi * t * (1 - (4 * alpha * t) ** 2)
             taps = np.where(np.abs(den) < 1e-12, 1.0, num / den)
         taps = (taps / np.sum(taps)).astype(np.float32)
 
         data = self.samples.copy()
-        times = self._time_fn(lambda: np.convolve(data, taps, mode='same'))
-        return self._make_result(f"RRC {n_taps}-tap sps={sps}", times, category="fir",
-                                 notes=f"alpha={alpha}")
+        times = self._time_fn(lambda: np.convolve(data, taps, mode="same"))
+        return self._make_result(
+            f"RRC {n_taps}-tap sps={sps}", times, category="fir", notes=f"alpha={alpha}"
+        )
 
     # ── Category: Decimation ─────────────────────────────────────────────
 
     def bench_decimate(self, factor: int = 8) -> BenchmarkResult:
         """Benchmark decimation."""
         from scipy.signal import decimate
-        times = self._time_fn(lambda: decimate(self.real_samples, factor, ftype='fir'))
+
+        times = self._time_fn(lambda: decimate(self.real_samples, factor, ftype="fir"))
         return self._make_result(f"Decimate {factor}×", times, category="decimate")
 
     # ── Category: FM Demodulation ────────────────────────────────────────
@@ -223,7 +234,7 @@ class DSPBenchmark:
 
         def agc_vec():
             n_blocks = len(data) // block_size
-            out = data[:n_blocks * block_size].reshape(n_blocks, block_size).copy()
+            out = data[: n_blocks * block_size].reshape(n_blocks, block_size).copy()
             for i in range(n_blocks):
                 power = np.mean(np.abs(out[i]) ** 2)
                 if power > 1e-12:
@@ -237,13 +248,13 @@ class DSPBenchmark:
 
     def bench_costas_loop(self, order: int = 2) -> BenchmarkResult:
         """Benchmark Costas Loop carrier recovery (SatDump costas category)."""
-        data = self.samples[:min(self.n, 8192)].copy()
+        data = self.samples[: min(self.n, 8192)].copy()
 
         def costas():
             bw = 0.02
-            denom = 1 + 2 * 0.707 * bw + bw ** 2
+            denom = 1 + 2 * 0.707 * bw + bw**2
             alpha = 4 * 0.707 * bw / denom
-            beta = 4 * bw ** 2 / denom
+            beta = 4 * bw**2 / denom
             phase = 0.0
             freq = 0.0
             out = np.zeros(len(data), dtype=np.complex64)
@@ -272,7 +283,7 @@ class DSPBenchmark:
 
     def bench_gardner_ted(self, sps: float = 4.0) -> BenchmarkResult:
         """Benchmark Gardner Timing Error Detector (SatDump simple_gardner)."""
-        data = self.samples[:min(self.n, 8192)].copy()
+        data = self.samples[: min(self.n, 8192)].copy()
 
         def gardner():
             symbols = []
@@ -287,21 +298,21 @@ class DSPBenchmark:
                 mid_idx = int(idx - sps / 2)
                 prev_idx = int(idx - sps)
                 if prev_idx >= 0 and mid_idx >= 0:
-                    error = np.real(
-                        (data[i] - data[prev_idx]) * np.conj(data[mid_idx])
-                    )
+                    error = np.real((data[i] - data[prev_idx]) * np.conj(data[mid_idx]))
                     mu = gain * error
                 idx += sps + mu
             return np.array(symbols, dtype=np.complex64)
 
         times = self._time_fn(gardner)
-        return self._make_result(f"Gardner TED sps={sps:.1f}", times, category="gardner_ted")
+        return self._make_result(
+            f"Gardner TED sps={sps:.1f}", times, category="gardner_ted"
+        )
 
     # ── Category: M&M Clock Recovery (SatDump-inspired) ──────────────────
 
     def bench_mm_recovery(self, omega: float = 2.0) -> BenchmarkResult:
         """Benchmark Mueller & Müller clock recovery (SatDump mm_recovery)."""
-        data = self.samples[:min(self.n, 8192)].copy()
+        data = self.samples[: min(self.n, 8192)].copy()
 
         def mm_recover():
             mu = 0.0
@@ -321,10 +332,13 @@ class DSPBenchmark:
                 symbols.append(sample)
 
                 # M&M TED
-                error = np.real(
-                    (sample - last_symbol) * np.conj(last_sample) -
-                    (last_sample - sample) * np.conj(last_symbol)
-                ) / 2.0
+                error = (
+                    np.real(
+                        (sample - last_symbol) * np.conj(last_sample)
+                        - (last_sample - sample) * np.conj(last_symbol)
+                    )
+                    / 2.0
+                )
 
                 last_symbol = sample
                 mid = int(idx + omega_val / 2)
@@ -332,21 +346,24 @@ class DSPBenchmark:
                     last_sample = data[mid]
 
                 omega_val = omega_val + gain_omega * error
-                omega_val = np.clip(omega_val, omega_mid - omega_lim,
-                                    omega_mid + omega_lim)
+                omega_val = np.clip(
+                    omega_val, omega_mid - omega_lim, omega_mid + omega_lim
+                )
                 mu += omega_val + gain_mu * error
                 idx += int(omega_val)
 
             return np.array(symbols, dtype=np.complex64)
 
         times = self._time_fn(mm_recover)
-        return self._make_result(f"M&M Recovery ω={omega:.1f}", times,
-                                 category="mm_recovery")
+        return self._make_result(
+            f"M&M Recovery ω={omega:.1f}", times, category="mm_recovery"
+        )
 
     # ── Category: Frequency Shift (SatDump-inspired) ─────────────────────
 
-    def bench_freq_shift(self, shift_hz: float = 100e3,
-                         sample_rate: float = 1e6) -> BenchmarkResult:
+    def bench_freq_shift(
+        self, shift_hz: float = 100e3, sample_rate: float = 1e6
+    ) -> BenchmarkResult:
         """Benchmark frequency shifting (complex NCO mixer)."""
         data = self.samples.copy()
         t = np.arange(len(data)) / sample_rate
@@ -363,6 +380,7 @@ class DSPBenchmark:
     def bench_resampler(self, up: int = 1, down: int = 10) -> BenchmarkResult:
         """Benchmark rational resampling (SatDump resamplers)."""
         from scipy.signal import resample_poly
+
         data = self.samples.copy()
 
         def resamp():
@@ -377,27 +395,65 @@ class DSPBenchmark:
     def bench_channelizer(self, num_channels: int = 8) -> BenchmarkResult:
         """Benchmark FFT channelizer."""
         block_len = self.n // num_channels
-        data = self.samples[:block_len * num_channels].reshape(num_channels, block_len)
+        data = self.samples[: block_len * num_channels].reshape(num_channels, block_len)
 
         def channelize():
             return np.fft.fft(data, axis=1)
 
         times = self._time_fn(channelize)
-        return self._make_result(f"Channelizer {num_channels}ch", times,
-                                 category="channelizer")
+        return self._make_result(
+            f"Channelizer {num_channels}ch", times, category="channelizer"
+        )
 
     # ── Category: Sync Word Detection (gr-satellites inspired) ───────────
 
     def bench_sync_word_detection(self) -> BenchmarkResult:
         """Benchmark CCSDS sync word correlation (gr-satellites pattern)."""
-        sync = np.array([1, -1, 1, 1, -1, 1, -1, -1,
-                         1, 1, 0, 0, 1, 1, 1, 1,
-                         1, 1, 1, 1, 1, 1, 0, 0,
-                         0, 0, 0, 1, 1, 1, 0, 1], dtype=np.float32) * 2 - 1
+        sync = (
+            np.array(
+                [
+                    1,
+                    -1,
+                    1,
+                    1,
+                    -1,
+                    1,
+                    -1,
+                    -1,
+                    1,
+                    1,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    0,
+                    1,
+                ],
+                dtype=np.float32,
+            )
+            * 2
+            - 1
+        )
         stream = np.random.randn(self.n).astype(np.float32)
 
         def correlate():
-            return np.correlate(stream, sync, mode='valid')
+            return np.correlate(stream, sync, mode="valid")
 
         times = self._time_fn(correlate)
         return self._make_result("Sync Word Corr", times, category="sync_word")
@@ -415,7 +471,7 @@ class DSPBenchmark:
         for i in range(255):
             gf_exp[i] = x
             gf_log[x] = i
-            x = ((x << 1) ^ 0x11d) if x & 0x80 else (x << 1)
+            x = ((x << 1) ^ 0x11D) if x & 0x80 else (x << 1)
             x &= 0xFF
         gf_exp[255:510] = gf_exp[:255]
 
@@ -458,7 +514,9 @@ class DSPBenchmark:
                     for bit in (0, 1):
                         # Simplified transition
                         next_state = ((state << 1) | bit) & (n_states - 1)
-                        branch = s0 * (1 if bit else -1) + s1 * (1 if (state & 1) else -1)
+                        branch = s0 * (1 if bit else -1) + s1 * (
+                            1 if (state & 1) else -1
+                        )
                         candidate = metrics[state] + branch
                         if candidate > new_metrics[next_state]:
                             new_metrics[next_state] = candidate
@@ -467,14 +525,16 @@ class DSPBenchmark:
             return int(np.argmax(metrics))
 
         times = self._time_fn(viterbi_hard)
-        return self._make_result(f"Viterbi K=7 R=1/2", times, category="viterbi",
-                                 notes=f"{n_bits} bits")
+        return self._make_result(
+            f"Viterbi K=7 R=1/2", times, category="viterbi", notes=f"{n_bits} bits"
+        )
 
     # ── Category: CRC32 (FoxTelem inspired) ──────────────────────────────
 
     def bench_crc32(self) -> BenchmarkResult:
         """Benchmark CRC32 computation (FoxTelem Crc32 pattern)."""
         import zlib
+
         data = self.byte_stream
 
         def crc_compute():
@@ -487,8 +547,8 @@ class DSPBenchmark:
 
     def run_all(self, categories: List[str] = None) -> DSPBenchmarkReport:
         """Run the complete DSP benchmark suite, optionally filtered by categories."""
-        import sys
         import platform
+        import sys
 
         report = DSPBenchmarkReport(
             platform=platform.node(),
@@ -582,11 +642,13 @@ class SDRHardwareBenchmark:
             try:
                 import sys
                 from pathlib import Path
+
                 repo_root = Path(__file__).resolve().parents[3]
                 satsdr_dir = repo_root / "SatSDR-Universal"
                 if satsdr_dir.exists() and str(satsdr_dir) not in sys.path:
                     sys.path.insert(0, str(satsdr_dir))
                 from src.utils.hardware import HardwareManager
+
                 self._hw = HardwareManager(driver)
                 log.info(f"SDR hardware connected: {driver}")
             except Exception as e:
@@ -605,11 +667,14 @@ class SDRHardwareBenchmark:
         # Simulated realistic IQ data
         t = np.arange(n) / sample_rate
         carrier = 0.3 * np.exp(2j * np.pi * 1000 * t)
-        noise = (np.random.randn(n) + 1j * np.random.randn(n)).astype(np.complex64) * 0.05
+        noise = (np.random.randn(n) + 1j * np.random.randn(n)).astype(
+            np.complex64
+        ) * 0.05
         return (carrier + noise).astype(np.complex64)
 
-    def bench_throughput(self, rate: float = 2.4e6,
-                         duration_s: float = 10.0) -> BenchmarkResult:
+    def bench_throughput(
+        self, rate: float = 2.4e6, duration_s: float = 10.0
+    ) -> BenchmarkResult:
         """
         Measure sustained IQ throughput from the SDR.
 
@@ -653,8 +718,9 @@ class SDRHardwareBenchmark:
             notes=f"efficiency={efficiency:.1f}%",
         )
 
-    def bench_dropped_samples(self, rate: float = 2.4e6,
-                               duration_s: float = 5.0) -> BenchmarkResult:
+    def bench_dropped_samples(
+        self, rate: float = 2.4e6, duration_s: float = 5.0
+    ) -> BenchmarkResult:
         """
         Measure dropped sample ratio during sustained streaming.
 
@@ -699,8 +765,9 @@ class SDRHardwareBenchmark:
             notes=f"dropped={dropped_chunks}/{total_chunks} ({drop_rate:.3f}%)",
         )
 
-    def bench_cpu_overhead(self, rate: float = 2.4e6,
-                            duration_s: float = 3.0) -> BenchmarkResult:
+    def bench_cpu_overhead(
+        self, rate: float = 2.4e6, duration_s: float = 3.0
+    ) -> BenchmarkResult:
         """
         Measure CPU utilization during active SDR streaming.
         """
@@ -709,8 +776,12 @@ class SDRHardwareBenchmark:
         except ImportError:
             return BenchmarkResult(
                 name="HW CPU Overhead",
-                mean_ms=0.0, min_ms=0.0, max_ms=0.0, std_ms=0.0,
-                throughput=0.0, iterations=0,
+                mean_ms=0.0,
+                min_ms=0.0,
+                max_ms=0.0,
+                std_ms=0.0,
+                throughput=0.0,
+                iterations=0,
                 category="hw_system",
                 notes="psutil not installed",
             )
@@ -745,8 +816,9 @@ class SDRHardwareBenchmark:
             notes=f"baseline={baseline:.1f}% streaming={streaming:.1f}%",
         )
 
-    def bench_memory_bandwidth(self, rate: float = 2.4e6,
-                                duration_s: float = 3.0) -> BenchmarkResult:
+    def bench_memory_bandwidth(
+        self, rate: float = 2.4e6, duration_s: float = 3.0
+    ) -> BenchmarkResult:
         """
         Estimate memory bandwidth consumed by SDR DMA transfers.
 

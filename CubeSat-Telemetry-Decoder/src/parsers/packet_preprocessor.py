@@ -8,14 +8,14 @@ and packet quality scoring before packets enter the decoder pipeline.
 DynamiX Labs
 """
 
+import logging
 import struct
 import time
-import logging
 import zlib
-from typing import Dict, List, Optional, Callable
 from dataclasses import dataclass, field
+from typing import Callable, Dict, List, Optional
 
-from .tm_packet import TmPacket, TmPacketFactory, PacketStatus
+from .tm_packet import PacketStatus, TmPacket, TmPacketFactory
 
 log = logging.getLogger("cubesat.preprocessor")
 
@@ -23,6 +23,7 @@ log = logging.getLogger("cubesat.preprocessor")
 @dataclass
 class PreprocessorStats:
     """Statistics collected by the packet preprocessor."""
+
     packets_processed: int = 0
     packets_valid: int = 0
     packets_invalid: int = 0
@@ -70,12 +71,14 @@ class PacketPreprocessor:
             decoder.decode(tm_packet)
     """
 
-    def __init__(self,
-                 crc_type: str = "crc32",
-                 crc_bytes: int = 4,
-                 timestamp_offset: int = -1,
-                 timestamp_format: str = "cuc",
-                 dedup_ring_size: int = 256):
+    def __init__(
+        self,
+        crc_type: str = "crc32",
+        crc_bytes: int = 4,
+        timestamp_offset: int = -1,
+        timestamp_format: str = "cuc",
+        dedup_ring_size: int = 256,
+    ):
         """
         Args:
             crc_type: Type of error detection ("crc32", "crc16", "checksum", "none")
@@ -106,8 +109,9 @@ class PacketPreprocessor:
         """Add a custom validation function. Returns True if packet is valid."""
         self._validators.append(fn)
 
-    def process(self, raw_bytes: bytes, link: str = "",
-                snr_db: float = 0.0) -> TmPacket:
+    def process(
+        self, raw_bytes: bytes, link: str = "", snr_db: float = 0.0
+    ) -> TmPacket:
         """
         Process a raw packet through the preprocessing pipeline.
 
@@ -156,12 +160,12 @@ class PacketPreprocessor:
         if self.crc_type == "none" or len(pkt.packet) < self.crc_bytes + 1:
             return True
 
-        data = pkt.packet[:-self.crc_bytes]
-        crc_bytes = pkt.packet[-self.crc_bytes:]
+        data = pkt.packet[: -self.crc_bytes]
+        crc_bytes = pkt.packet[-self.crc_bytes :]
 
         if self.crc_type == "crc32":
             computed = zlib.crc32(data) & 0xFFFFFFFF
-            received = int.from_bytes(crc_bytes, 'big')
+            received = int.from_bytes(crc_bytes, "big")
             valid = computed == received
 
         elif self.crc_type == "crc16":
@@ -176,20 +180,22 @@ class PacketPreprocessor:
                         crc <<= 1
                     crc &= 0xFFFF
             computed = crc
-            received = int.from_bytes(crc_bytes, 'big')
+            received = int.from_bytes(crc_bytes, "big")
             valid = computed == received
 
         elif self.crc_type == "checksum":
             computed = sum(data) & ((1 << (self.crc_bytes * 8)) - 1)
-            received = int.from_bytes(crc_bytes, 'big')
+            received = int.from_bytes(crc_bytes, "big")
             valid = computed == received
 
         else:
             valid = True
 
         if not valid:
-            log.debug(f"CRC {self.crc_type} failed: "
-                       f"computed=0x{computed:X}, received=0x{received:X}")
+            log.debug(
+                f"CRC {self.crc_type} failed: "
+                f"computed=0x{computed:X}, received=0x{received:X}"
+            )
         return valid
 
     def _extract_timestamp(self, pkt: TmPacket):
@@ -219,19 +225,19 @@ class PacketPreprocessor:
         try:
             if self.timestamp_format == "cuc" and offset + 5 <= len(data):
                 # CUC: P-field + coarse time (4 bytes)
-                coarse = struct.unpack(">I", data[offset + 1:offset + 5])[0]
+                coarse = struct.unpack(">I", data[offset + 1 : offset + 5])[0]
                 pkt.gentime = float(coarse)
                 # CCSDS epoch is 1958-01-01, convert to Unix
                 pkt.gentime += -378691200  # Approximate offset
 
             elif self.timestamp_format == "cds" and offset + 6 <= len(data):
                 # CDS: days (2 bytes) + ms_of_day (4 bytes)
-                days, ms_of_day = struct.unpack(">HI", data[offset:offset + 6])
+                days, ms_of_day = struct.unpack(">HI", data[offset : offset + 6])
                 # CCSDS epoch
                 pkt.gentime = days * 86400.0 + ms_of_day / 1000.0 - 378691200
 
             elif self.timestamp_format == "unix32" and offset + 4 <= len(data):
-                pkt.gentime = float(struct.unpack(">I", data[offset:offset + 4])[0])
+                pkt.gentime = float(struct.unpack(">I", data[offset : offset + 4])[0])
 
             else:
                 pkt.gentime = pkt.rectime

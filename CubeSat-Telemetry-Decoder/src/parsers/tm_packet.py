@@ -8,12 +8,12 @@ status bitfield, and link association.
 DynamiX Labs
 """
 
-import time
-import struct
 import logging
+import struct
+import time
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any
 from enum import IntFlag
+from typing import Any, Dict, Optional
 
 log = logging.getLogger("cubesat.tmpacket")
 
@@ -32,6 +32,7 @@ class PacketStatus(IntFlag):
       bit 30:      DUPLICATE — packet is a detected duplicate
       bit 31 (MSB): always 0
     """
+
     NONE = 0
     INVALID = 1 << 0
     LOCAL_GEN_TIME = 1 << 1
@@ -56,10 +57,11 @@ class TmPacket:
       apid:      Application Process Identifier (from CCSDS header)
       obt:       On-Board Time (free-running clock value)
     """
+
     packet: bytes = b""
-    rectime: float = 0.0          # Unix timestamp
-    gentime: float = 0.0          # Unix timestamp
-    ertime: float = 0.0           # High-resolution earth reception time
+    rectime: float = 0.0  # Unix timestamp
+    gentime: float = 0.0  # Unix timestamp
+    ertime: float = 0.0  # High-resolution earth reception time
     seq_count: int = 0
     status: int = PacketStatus.NONE
     link: str = ""
@@ -69,9 +71,9 @@ class TmPacket:
     root_container: str = ""
 
     # Quality metadata
-    snr_db: float = 0.0           # SNR at time of reception
-    ber: float = 0.0              # Bit error rate estimate
-    fec_corrections: int = 0      # Number of FEC-corrected errors
+    snr_db: float = 0.0  # SNR at time of reception
+    ber: float = 0.0  # Bit error rate estimate
+    fec_corrections: int = 0  # Number of FEC-corrected errors
 
     @property
     def is_invalid(self) -> bool:
@@ -182,8 +184,7 @@ class TmPacketFactory:
     """
 
     @staticmethod
-    def from_raw(raw_bytes: bytes, link: str = "",
-                 snr_db: float = 0.0) -> TmPacket:
+    def from_raw(raw_bytes: bytes, link: str = "", snr_db: float = 0.0) -> TmPacket:
         """Create a TmPacket from raw bytes with current reception time."""
         pkt = TmPacket(
             packet=raw_bytes,
@@ -201,8 +202,7 @@ class TmPacketFactory:
         return pkt
 
     @staticmethod
-    def from_ccsds(ccsds_packet, link: str = "",
-                   snr_db: float = 0.0) -> TmPacket:
+    def from_ccsds(ccsds_packet, link: str = "", snr_db: float = 0.0) -> TmPacket:
         """Create a TmPacket from a parsed CCSDSSpacePacket."""
         pkt = TmPacket(
             packet=ccsds_packet.raw,

@@ -3,14 +3,10 @@ Tests for RF Performance Benchmark Suite
 DynamiX Labs | Advanced Hardware Integration
 """
 
-import pytest
 import numpy as np
-from src.benchmarks.rf_benchmark import (
-    RFBenchmarkSuite,
-    RFBenchmarkReport,
-    RFBenchmarkResult,
-    THRESHOLDS,
-)
+import pytest
+from src.benchmarks.rf_benchmark import (THRESHOLDS, RFBenchmarkReport,
+                                         RFBenchmarkResult, RFBenchmarkSuite)
 
 
 class TestRFBenchmarkSuite:
@@ -132,5 +128,6 @@ class TestRFBenchmarkSuite:
         assert len(d["results"]) == len(report.results)
         # Verify JSON compatibility
         import json
+
         serialized = json.dumps(d)
         assert len(serialized) > 100

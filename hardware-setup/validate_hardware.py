@@ -22,15 +22,15 @@ Usage:
     python validate_hardware.py --verbose      # Detailed output
 """
 
-import sys
-import json
-import time
-import platform
 import argparse
+import json
 import logging
-from pathlib import Path
+import platform
+import sys
+import time
 from datetime import datetime, timezone
-from typing import List, Dict, Optional
+from pathlib import Path
+from typing import Dict, List, Optional
 
 # Configure logging
 logging.basicConfig(
@@ -99,6 +99,7 @@ RECOMMENDED_SETTINGS = {
 
 # ─── Validation Functions ────────────────────────────────────────────────
 
+
 def discover_devices(simulate: bool = False) -> List[Dict]:
     """Discover all SDR devices using SoapySDR."""
     if simulate:
@@ -120,6 +121,7 @@ def discover_devices(simulate: bool = False) -> List[Dict]:
     devices = []
     try:
         import SoapySDR
+
         results = SoapySDR.Device.enumerate()
         for r in results:
             devices.append(dict(r))
@@ -127,7 +129,9 @@ def discover_devices(simulate: bool = False) -> List[Dict]:
     except ImportError:
         log.error("SoapySDR is NOT installed. Install it to detect hardware.")
         log.error("  Linux: sudo apt-get install soapysdr-tools python3-soapysdr")
-        log.error("  Windows: Install PothosSDR (https://github.com/pothosware/PothosSDR)")
+        log.error(
+            "  Windows: Install PothosSDR (https://github.com/pothosware/PothosSDR)"
+        )
     except Exception as e:
         log.error(f"Device enumeration failed: {e}")
 
@@ -167,9 +171,9 @@ def self_test_device(device_info: Dict, simulate: bool = False) -> Dict:
 
     # Test 1: Connect
     try:
-        import SoapySDR
-        from SoapySDR import SOAPY_SDR_RX, SOAPY_SDR_CF32
         import numpy as np
+        import SoapySDR
+        from SoapySDR import SOAPY_SDR_CF32, SOAPY_SDR_RX
 
         sdr = SoapySDR.Device(device_info)
         result["tests"]["connect"] = {"status": "pass"}
@@ -236,18 +240,24 @@ def self_test_device(device_info: Dict, simulate: bool = False) -> Dict:
 
     # Test 4: Validate IQ data
     try:
-        samples = buf[:sr.ret]
+        samples = buf[: sr.ret]
         all_zero = np.all(samples == 0)
         has_nan = np.any(np.isnan(np.abs(samples)))
         has_inf = np.any(np.isinf(np.abs(samples)))
         power = np.mean(np.abs(samples) ** 2)
 
         if all_zero:
-            result["tests"]["iq_valid"] = {"status": "fail", "error": "All samples are zero"}
+            result["tests"]["iq_valid"] = {
+                "status": "fail",
+                "error": "All samples are zero",
+            }
             result["passed"] = False
             log.error("  ✗ IQ Valid: All samples are zero!")
         elif has_nan or has_inf:
-            result["tests"]["iq_valid"] = {"status": "fail", "error": "NaN/Inf in samples"}
+            result["tests"]["iq_valid"] = {
+                "status": "fail",
+                "error": "NaN/Inf in samples",
+            }
             result["passed"] = False
             log.error("  ✗ IQ Valid: NaN/Inf detected!")
         else:
@@ -263,8 +273,9 @@ def self_test_device(device_info: Dict, simulate: bool = False) -> Dict:
     return result
 
 
-def quick_benchmark(device_info: Dict, duration_s: float = 5.0,
-                     simulate: bool = False) -> Dict:
+def quick_benchmark(
+    device_info: Dict, duration_s: float = 5.0, simulate: bool = False
+) -> Dict:
     """Run a quick 5-second throughput benchmark."""
     result = {
         "driver": device_info.get("driver", "unknown"),
@@ -273,6 +284,7 @@ def quick_benchmark(device_info: Dict, duration_s: float = 5.0,
 
     if simulate or device_info.get("simulated"):
         import numpy as np
+
         # Simulate throughput test
         rate = 2.4e6
         total = int(rate * duration_s)
@@ -284,9 +296,9 @@ def quick_benchmark(device_info: Dict, duration_s: float = 5.0,
         return result
 
     try:
-        import SoapySDR
-        from SoapySDR import SOAPY_SDR_RX, SOAPY_SDR_CF32
         import numpy as np
+        import SoapySDR
+        from SoapySDR import SOAPY_SDR_CF32, SOAPY_SDR_RX
 
         driver = device_info.get("driver", "")
         rate = RECOMMENDED_SETTINGS.get(driver, {}).get("optimal_rate", 2.4e6)
@@ -322,14 +334,16 @@ def quick_benchmark(device_info: Dict, duration_s: float = 5.0,
         actual_rate = total_samples / elapsed if elapsed > 0 else 0
         efficiency = (actual_rate / rate * 100) if rate > 0 else 0
 
-        result.update({
-            "sample_rate_requested": rate,
-            "total_samples": total_samples,
-            "actual_sps": round(actual_rate, 0),
-            "efficiency_pct": round(efficiency, 2),
-            "dropped_chunks": dropped,
-            "actual_duration_s": round(elapsed, 2),
-        })
+        result.update(
+            {
+                "sample_rate_requested": rate,
+                "total_samples": total_samples,
+                "actual_sps": round(actual_rate, 0),
+                "efficiency_pct": round(efficiency, 2),
+                "dropped_chunks": dropped,
+                "actual_duration_s": round(elapsed, 2),
+            }
+        )
 
         log.info(f"  Throughput: {actual_rate/1e6:.2f} MSPS ({efficiency:.1f}%)")
 
@@ -348,21 +362,22 @@ def check_kernel_conflicts() -> List[Dict]:
         return conflicts
 
     import subprocess
+
     try:
-        result = subprocess.run(
-            ["lsmod"], capture_output=True, text=True, timeout=5
-        )
+        result = subprocess.run(["lsmod"], capture_output=True, text=True, timeout=5)
         loaded_modules = result.stdout
 
         for driver, info in KERNEL_CONFLICTS.items():
             for module in info["modules"]:
                 if module in loaded_modules:
-                    conflicts.append({
-                        "driver": driver,
-                        "conflicting_module": module,
-                        "fix_command": info["fix"],
-                        "permanent_fix": info["permanent"],
-                    })
+                    conflicts.append(
+                        {
+                            "driver": driver,
+                            "conflicting_module": module,
+                            "fix_command": info["fix"],
+                            "permanent_fix": info["permanent"],
+                        }
+                    )
                     log.warning(
                         f"Kernel conflict: '{module}' blocks {driver}. "
                         f"Fix: {info['fix']}"
@@ -375,18 +390,25 @@ def check_kernel_conflicts() -> List[Dict]:
 
 def get_recommended_settings(driver: str) -> Dict:
     """Get recommended settings for a specific device type."""
-    return RECOMMENDED_SETTINGS.get(driver, {
-        "sample_rates": [250e3, 1e6, 2.4e6],
-        "optimal_rate": 2.4e6,
-        "optimal_gain": 30.0,
-        "buffer_size": 131072,
-        "notes": "No specific recommendations available for this device.",
-    })
+    return RECOMMENDED_SETTINGS.get(
+        driver,
+        {
+            "sample_rates": [250e3, 1e6, 2.4e6],
+            "optimal_rate": 2.4e6,
+            "optimal_gain": 30.0,
+            "buffer_size": 131072,
+            "notes": "No specific recommendations available for this device.",
+        },
+    )
 
 
-def generate_report(devices: List[Dict], self_tests: List[Dict],
-                     benchmarks: List[Dict], conflicts: List[Dict],
-                     output_path: str = None) -> Dict:
+def generate_report(
+    devices: List[Dict],
+    self_tests: List[Dict],
+    benchmarks: List[Dict],
+    conflicts: List[Dict],
+    output_path: str = None,
+) -> Dict:
     """Generate a comprehensive hardware validation report."""
     report = {
         "meta": {
@@ -424,7 +446,9 @@ def generate_report(devices: List[Dict], self_tests: List[Dict],
     if output_path:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        report_file = path / "hardware_validation_report.json" if path.is_dir() else path
+        report_file = (
+            path / "hardware_validation_report.json" if path.is_dir() else path
+        )
         with open(report_file, "w") as f:
             json.dump(report, f, indent=2, default=str)
         log.info(f"Report saved: {report_file}")
@@ -434,25 +458,32 @@ def generate_report(devices: List[Dict], self_tests: List[Dict],
 
 # ─── Main ────────────────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="DynamiX Labs — SDR Hardware Validation Tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "--simulate", action="store_true",
+        "--simulate",
+        action="store_true",
         help="Run in simulation mode (no hardware required)",
     )
     parser.add_argument(
-        "--report", type=str, default=None,
+        "--report",
+        type=str,
+        default=None,
         help="Output directory or file path for JSON report",
     )
     parser.add_argument(
-        "--skip-benchmark", action="store_true",
+        "--skip-benchmark",
+        action="store_true",
         help="Skip throughput benchmark (faster validation)",
     )
     parser.add_argument(
-        "--verbose", "-v", action="store_true",
+        "--verbose",
+        "-v",
+        action="store_true",
         help="Enable verbose output",
     )
 
@@ -509,7 +540,9 @@ def main():
     if not args.skip_benchmark:
         print("\n▸ Running quick throughput benchmarks (5s each)...")
         for dev in devices:
-            print(f"  Benchmarking: {dev.get('label', dev.get('driver', 'Unknown'))}...")
+            print(
+                f"  Benchmarking: {dev.get('label', dev.get('driver', 'Unknown'))}..."
+            )
             bm = quick_benchmark(dev, duration_s=5.0, simulate=args.simulate)
             benchmarks.append(bm)
 
@@ -527,7 +560,10 @@ def main():
 
     # Step 6: Generate report
     report = generate_report(
-        devices, self_tests, benchmarks, conflicts,
+        devices,
+        self_tests,
+        benchmarks,
+        conflicts,
         output_path=args.report,
     )
 
@@ -536,7 +572,9 @@ def main():
     summary = report["summary"]
     overall = summary["overall"]
     print(f"  Devices: {summary['devices_found']} found")
-    print(f"  Tests:   {summary['tests_passed']}/{summary['tests_passed'] + summary['tests_failed']} passed")
+    print(
+        f"  Tests:   {summary['tests_passed']}/{summary['tests_passed'] + summary['tests_failed']} passed"
+    )
     print(f"  Overall: {overall}")
     print("=" * 60)
     print()

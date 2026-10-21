@@ -15,11 +15,12 @@ Usage:
     spectrum = gpu.fft(iq_samples)
 """
 
-import numpy as np
 import logging
 import time
-from typing import List, Optional, Tuple
 from dataclasses import dataclass, field
+from typing import List, Optional, Tuple
+
+import numpy as np
 
 log = logging.getLogger("satsdr.gpu")
 
@@ -40,6 +41,7 @@ def _try_import_cupy():
         import cupy  # type: ignore[import-untyped]
         import cupy.fft as cupy_fft  # type: ignore[import-untyped]
         import cupyx.scipy.signal as cupyx_signal  # type: ignore[import-untyped]
+
         _cupy = cupy
         _cupy_fft = cupy_fft
         _cupyx_scipy_signal = cupyx_signal
@@ -155,8 +157,12 @@ class GPUBackend:
         try:
             _cupy.cuda.Device(self.device_id).use()
             props = _cupy.cuda.runtime.getDeviceProperties(self.device_id)
-            self.metrics.gpu_name = props["name"].decode() if isinstance(props["name"], bytes) else str(props["name"])
-            self.metrics.vram_total_mb = props["totalGlobalMem"] / (1024 ** 2)
+            self.metrics.gpu_name = (
+                props["name"].decode()
+                if isinstance(props["name"], bytes)
+                else str(props["name"])
+            )
+            self.metrics.vram_total_mb = props["totalGlobalMem"] / (1024**2)
 
             # Set up pinned-memory pool for faster transfers
             if self.enable_pinned:
@@ -194,7 +200,7 @@ class GPUBackend:
         """Refresh VRAM usage metric."""
         try:
             pool = _cupy.get_default_memory_pool()
-            self.metrics.vram_used_mb = pool.used_bytes() / (1024 ** 2)
+            self.metrics.vram_used_mb = pool.used_bytes() / (1024**2)
         except Exception:
             pass
 
@@ -246,8 +252,9 @@ class GPUBackend:
         else:
             return np.fft.ifft(X, n=n)
 
-    def batch_fft(self, blocks: List[np.ndarray],
-                  n: Optional[int] = None) -> List[np.ndarray]:
+    def batch_fft(
+        self, blocks: List[np.ndarray], n: Optional[int] = None
+    ) -> List[np.ndarray]:
         """
         Batch FFT — processes a list of sample blocks.
 
@@ -263,7 +270,7 @@ class GPUBackend:
             fft_n = n or max_len
             padded = np.zeros((len(blocks), fft_n), dtype=np.complex64)
             for i, b in enumerate(blocks):
-                padded[i, :len(b)] = b
+                padded[i, : len(b)] = b
 
             t0 = time.perf_counter()
             d_in = self._to_device(padded)
@@ -316,6 +323,7 @@ class GPUBackend:
             return result
         else:
             from scipy.signal import fftconvolve
+
             self.metrics.total_fir_calls += 1
             return fftconvolve(x, taps, mode="same").astype(x.dtype)
 
@@ -352,9 +360,15 @@ class GPUBackend:
 
     def _welch_cpu(self, x, fs, nperseg, noverlap, window):
         from scipy import signal as sig
+
         freqs, psd = sig.welch(
-            x, fs=fs, nperseg=nperseg, noverlap=noverlap,
-            window=window, return_onesided=False, scaling="density",
+            x,
+            fs=fs,
+            nperseg=nperseg,
+            noverlap=noverlap,
+            window=window,
+            return_onesided=False,
+            scaling="density",
         )
         psd_db = 10.0 * np.log10(np.fft.fftshift(psd) + 1e-20)
         freqs = np.fft.fftshift(freqs)
@@ -369,7 +383,7 @@ class GPUBackend:
 
         # Build window on host, transfer once
         win = get_window(window, nperseg).astype(np.float32)
-        win_norm = np.sum(win ** 2)
+        win_norm = np.sum(win**2)
 
         # Segment the signal
         step = nperseg - noverlap
@@ -409,16 +423,14 @@ class GPUBackend:
     # ------------------------------------------------------------------
     # Correlation
     # ------------------------------------------------------------------
-    def correlate(self, a: np.ndarray, b: np.ndarray,
-                  mode: str = "full") -> np.ndarray:
+    def correlate(self, a: np.ndarray, b: np.ndarray, mode: str = "full") -> np.ndarray:
         """Cross-correlation — GPU-accelerated when available."""
         if self.gpu_available:
             d_a = self._to_device(a)
             d_b = self._to_device(b)
-            d_out = _cupyx_scipy_signal.fftconvolve(
-                d_a, d_b[::-1].conj(), mode=mode
-            )
+            d_out = _cupyx_scipy_signal.fftconvolve(d_a, d_b[::-1].conj(), mode=mode)
             return self._to_host(d_out)
         else:
             from scipy.signal import fftconvolve
+
             return fftconvolve(a, b[::-1].conj(), mode=mode)

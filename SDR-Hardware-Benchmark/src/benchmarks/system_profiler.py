@@ -9,10 +9,10 @@ Inspired by:
 DynamiX Labs
 """
 
+import logging
+import os
 import platform
 import sys
-import os
-import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -58,6 +58,7 @@ class NumericBackend:
 @dataclass
 class SDRDeviceInfo:
     """Information about a detected SDR device."""
+
     device_name: str = "Unknown"
     driver: str = ""
     serial: str = ""
@@ -73,6 +74,7 @@ class SDRDeviceInfo:
 @dataclass
 class SystemProfile:
     """Complete system profile for benchmark context."""
+
     hostname: str = ""
     os_name: str = ""
     os_version: str = ""
@@ -102,31 +104,39 @@ class SystemProfile:
         if self.cpu.simd_extensions:
             simd_str = ", ".join(self.cpu.simd_extensions[:6])
             lines.append(f" SIMD:     {simd_str[:46]:<46} ")
-        lines.extend([
-            "-" * 60,
-            f" RAM:      {self.memory.total_gb:.1f} GB total, "
-            f"{self.memory.available_gb:.1f} GB free"
-            f"{'':>{24 - len(f'{self.memory.total_gb:.1f}') - len(f'{self.memory.available_gb:.1f}')}} ",
-        ])
-        if self.gpu.available:
-            lines.extend([
+        lines.extend(
+            [
                 "-" * 60,
-                f" GPU:      {self.gpu.name[:46]:<46} ",
-                f" VRAM:     {self.gpu.vram_gb:.1f} GB"
-                f"{'':>{40 - len(f'{self.gpu.vram_gb:.1f}')}} ",
-                f" CUDA:     {self.gpu.cuda_version:<46} ",
-            ])
+                f" RAM:      {self.memory.total_gb:.1f} GB total, "
+                f"{self.memory.available_gb:.1f} GB free"
+                f"{'':>{24 - len(f'{self.memory.total_gb:.1f}') - len(f'{self.memory.available_gb:.1f}')}} ",
+            ]
+        )
+        if self.gpu.available:
+            lines.extend(
+                [
+                    "-" * 60,
+                    f" GPU:      {self.gpu.name[:46]:<46} ",
+                    f" VRAM:     {self.gpu.vram_gb:.1f} GB"
+                    f"{'':>{40 - len(f'{self.gpu.vram_gb:.1f}')}} ",
+                    f" CUDA:     {self.gpu.cuda_version:<46} ",
+                ]
+            )
         else:
             lines.append(" GPU:      Not detected                                  ")
-        lines.extend([
-            "-" * 60,
-            f" NumPy:    {self.numeric.numpy_version:<46} ",
-            f" SciPy:    {self.numeric.scipy_version:<46} ",
-            f" BLAS:     {self.numeric.blas_library[:46]:<46} ",
-        ])
+        lines.extend(
+            [
+                "-" * 60,
+                f" NumPy:    {self.numeric.numpy_version:<46} ",
+                f" SciPy:    {self.numeric.scipy_version:<46} ",
+                f" BLAS:     {self.numeric.blas_library[:46]:<46} ",
+            ]
+        )
         if self.sdr_devices:
             lines.append("-" * 60)
-            lines.append(f" SDR Devices: {len(self.sdr_devices)} detected                          ")
+            lines.append(
+                f" SDR Devices: {len(self.sdr_devices)} detected                          "
+            )
             for dev in self.sdr_devices:
                 dev_str = f"{dev.device_name} ({dev.driver})"
                 lines.append(f"   • {dev_str[:53]:<53} ")
@@ -218,6 +228,7 @@ class SystemProfiler:
 
         try:
             import psutil
+
             info.cores_physical = psutil.cpu_count(logical=False) or 0
             info.cores_logical = psutil.cpu_count(logical=True) or 0
             freq = psutil.cpu_freq()
@@ -231,11 +242,18 @@ class SystemProfiler:
         if platform.system() == "Windows" and info.model in ("Unknown", ""):
             try:
                 import subprocess
+
                 result = subprocess.run(
                     ["wmic", "cpu", "get", "name"],
-                    capture_output=True, text=True, timeout=5
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
                 )
-                lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip() and l.strip() != "Name"]
+                lines = [
+                    l.strip()
+                    for l in result.stdout.strip().split("\n")
+                    if l.strip() and l.strip() != "Name"
+                ]
                 if lines:
                     info.model = lines[0]
             except Exception:
@@ -244,12 +262,13 @@ class SystemProfiler:
         # SIMD detection via numpy config
         try:
             import numpy as np
+
             config = np.__config__
-            if hasattr(config, 'blas_opt_info'):
+            if hasattr(config, "blas_opt_info"):
                 blas_info = config.blas_opt_info
-                if 'extra_compile_args' in blas_info:
-                    for arg in blas_info['extra_compile_args']:
-                        if 'avx' in arg.lower() or 'sse' in arg.lower():
+                if "extra_compile_args" in blas_info:
+                    for arg in blas_info["extra_compile_args"]:
+                        if "avx" in arg.lower() or "sse" in arg.lower():
                             info.simd_extensions.append(arg)
         except Exception:
             pass
@@ -257,9 +276,9 @@ class SystemProfiler:
         # Platform-based SIMD heuristic
         if not info.simd_extensions:
             arch = info.architecture.lower()
-            if 'x86_64' in arch or 'amd64' in arch:
+            if "x86_64" in arch or "amd64" in arch:
                 info.simd_extensions = ["SSE2", "AVX (assumed)"]
-            elif 'aarch64' in arch or 'arm64' in arch:
+            elif "aarch64" in arch or "arm64" in arch:
                 info.simd_extensions = ["NEON"]
 
         return info
@@ -269,14 +288,16 @@ class SystemProfiler:
         mem = MemoryInfo()
         try:
             import psutil
+
             vm = psutil.virtual_memory()
-            mem.total_gb = vm.total / (1024 ** 3)
-            mem.available_gb = vm.available / (1024 ** 3)
+            mem.total_gb = vm.total / (1024**3)
+            mem.available_gb = vm.available / (1024**3)
             swap = psutil.swap_memory()
-            mem.swap_total_gb = swap.total / (1024 ** 3)
+            mem.swap_total_gb = swap.total / (1024**3)
         except ImportError:
             log.debug("psutil not available for memory detection")
         return mem
+
     @staticmethod
     def _detect_gpu() -> GPUInfo:
         gpu = GPUInfo()
@@ -284,12 +305,15 @@ class SystemProfiler:
         # Try CuPy first
         try:
             import cupy as cp
+
             gpu.available = True
             gpu.cupy_available = True
             device = cp.cuda.Device(0)
-            gpu.name = device.attributes.get("DeviceName", cp.cuda.runtime.getDeviceProperties(0)["name"].decode())
+            gpu.name = device.attributes.get(
+                "DeviceName", cp.cuda.runtime.getDeviceProperties(0)["name"].decode()
+            )
             mem_info = device.mem_info
-            gpu.vram_gb = mem_info[1] / (1024 ** 3)
+            gpu.vram_gb = mem_info[1] / (1024**3)
             gpu.cuda_version = f"{cp.cuda.runtime.runtimeGetVersion()}"
         except Exception:
             pass
@@ -297,12 +321,13 @@ class SystemProfiler:
         # Try pycuda as fallback
         if not gpu.available:
             try:
-                import pycuda.driver as cuda
                 import pycuda.autoinit  # noqa: F401
+                import pycuda.driver as cuda
+
                 device = cuda.Device(0)
                 gpu.available = True
                 gpu.name = device.name()
-                gpu.vram_gb = device.total_memory() / (1024 ** 3)
+                gpu.vram_gb = device.total_memory() / (1024**3)
             except Exception:
                 pass
 
@@ -313,27 +338,28 @@ class SystemProfiler:
         nb = NumericBackend()
         try:
             import numpy as np
+
             nb.numpy_version = np.__version__
 
             # Detect BLAS backend
             try:
-                config_info = np.show_config(mode='dicts')
+                config_info = np.show_config(mode="dicts")
                 if isinstance(config_info, dict):
-                    blas = config_info.get('Build Dependencies', {}).get('blas', {})
+                    blas = config_info.get("Build Dependencies", {}).get("blas", {})
                     if isinstance(blas, dict):
-                        nb.blas_library = blas.get('name', 'Unknown')
-                    lapack = config_info.get('Build Dependencies', {}).get('lapack', {})
+                        nb.blas_library = blas.get("name", "Unknown")
+                    lapack = config_info.get("Build Dependencies", {}).get("lapack", {})
                     if isinstance(lapack, dict):
-                        nb.lapack_library = lapack.get('name', 'Unknown')
+                        nb.lapack_library = lapack.get("name", "Unknown")
             except Exception:
                 # Older numpy fallback
                 try:
                     blas_info = np.__config__.blas_opt_info
-                    libs = blas_info.get('libraries', [])
+                    libs = blas_info.get("libraries", [])
                     if libs:
-                        if any('mkl' in l.lower() for l in libs):
+                        if any("mkl" in l.lower() for l in libs):
                             nb.blas_library = "Intel MKL"
-                        elif any('openblas' in l.lower() for l in libs):
+                        elif any("openblas" in l.lower() for l in libs):
                             nb.blas_library = "OpenBLAS"
                         else:
                             nb.blas_library = ", ".join(libs[:3])
@@ -344,6 +370,7 @@ class SystemProfiler:
 
         try:
             import scipy
+
             nb.scipy_version = scipy.__version__
         except ImportError:
             nb.scipy_version = "Not installed"
@@ -397,9 +424,7 @@ class SystemProfiler:
                     # Gain range
                     gain_range = dev.getGainRange(SOAPY_SDR_RX, 0)
                     if gain_range:
-                        info.gain_range_db = (
-                            f"{gain_range.minimum():.1f} - {gain_range.maximum():.1f} dB"
-                        )
+                        info.gain_range_db = f"{gain_range.minimum():.1f} - {gain_range.maximum():.1f} dB"
 
                     # Antenna ports
                     antennas = dev.listAntennas(SOAPY_SDR_RX, 0)

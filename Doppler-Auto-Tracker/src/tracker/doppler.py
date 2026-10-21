@@ -1,7 +1,7 @@
+import logging
 import math
 from datetime import datetime, timezone
 from typing import Tuple
-import logging
 
 log = logging.getLogger("doppler.tracker")
 
@@ -10,7 +10,9 @@ EARTH_RADIUS_M = 6_378_137.0
 EARTH_FLATTENING = 1 / 298.257223563
 
 
-def geodetic_to_ecef(lat_deg: float, lon_deg: float, alt_m: float) -> Tuple[float, float, float]:
+def geodetic_to_ecef(
+    lat_deg: float, lon_deg: float, alt_m: float
+) -> Tuple[float, float, float]:
     """Convert geodetic coordinates to ECEF frame."""
     lat = math.radians(lat_deg)
     lon = math.radians(lon_deg)
@@ -27,11 +29,17 @@ def geodetic_to_ecef(lat_deg: float, lon_deg: float, alt_m: float) -> Tuple[floa
 
 class DopplerCalculator:
 
-    def __init__(self, tle_line1: str, tle_line2: str,
-                 observer_lat: float, observer_lon: float,
-                 observer_alt: float = 0.0):
+    def __init__(
+        self,
+        tle_line1: str,
+        tle_line2: str,
+        observer_lat: float,
+        observer_lon: float,
+        observer_alt: float = 0.0,
+    ):
         try:
             from sgp4.api import Satrec
+
             self.satellite = Satrec.twoline2rv(tle_line1, tle_line2)
         except ImportError:
             log.error("sgp4 not installed — run: pip install sgp4")
@@ -48,8 +56,15 @@ class DopplerCalculator:
             dt = datetime.now(timezone.utc)
 
         from sgp4.api import jday
-        jd, fr = jday(dt.year, dt.month, dt.day,
-                      dt.hour, dt.minute, dt.second + dt.microsecond / 1e6)
+
+        jd, fr = jday(
+            dt.year,
+            dt.month,
+            dt.day,
+            dt.hour,
+            dt.minute,
+            dt.second + dt.microsecond / 1e6,
+        )
 
         e, r, v = self.satellite.sgp4(jd, fr)
         if e != 0:
@@ -65,8 +80,8 @@ class DopplerCalculator:
 
         EARTH_ROTATION_RAD_S = 7.2921150e-5
         obs_vx = -EARTH_ROTATION_RAD_S * obs_pos[1]
-        obs_vy =  EARTH_ROTATION_RAD_S * obs_pos[0]
-        obs_vz =  0.0
+        obs_vy = EARTH_ROTATION_RAD_S * obs_pos[0]
+        obs_vz = 0.0
 
         rx = sat_pos[0] - obs_pos[0]
         ry = sat_pos[1] - obs_pos[1]
@@ -77,11 +92,11 @@ class DopplerCalculator:
             return 0.0
 
         ux, uy, uz = rx / range_m, ry / range_m, rz / range_m
-        
+
         rel_vx = sat_vel[0] - obs_vx
         rel_vy = sat_vel[1] - obs_vy
         rel_vz = sat_vel[2] - obs_vz
-        
+
         rr = rel_vx * ux + rel_vy * uy + rel_vz * uz
         return rr
 
@@ -112,11 +127,17 @@ class DopplerCalculator:
         lat = math.radians(self.obs_lat)
         lon = math.radians(self.obs_lon)
 
-        s = (math.sin(lat) * math.cos(lon) * dx +
-             math.sin(lat) * math.sin(lon) * dy - math.cos(lat) * dz)
-        e = (-math.sin(lon) * dx + math.cos(lon) * dy)
-        z = (math.cos(lat) * math.cos(lon) * dx +
-             math.cos(lat) * math.sin(lon) * dy + math.sin(lat) * dz)
+        s = (
+            math.sin(lat) * math.cos(lon) * dx
+            + math.sin(lat) * math.sin(lon) * dy
+            - math.cos(lat) * dz
+        )
+        e = -math.sin(lon) * dx + math.cos(lon) * dy
+        z = (
+            math.cos(lat) * math.cos(lon) * dx
+            + math.cos(lat) * math.sin(lon) * dy
+            + math.sin(lat) * dz
+        )
 
         range_m = math.sqrt(s * s + e * e + z * z)
         el = math.degrees(math.asin(z / range_m)) if range_m > 0 else 0

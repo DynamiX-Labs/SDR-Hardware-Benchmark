@@ -20,25 +20,24 @@ Usage:
     broker.start()   # blocking
 """
 
+import logging
 import threading
 import time
 import uuid
-import logging
-from typing import Dict, List, Optional
 from collections import deque
+from typing import Dict, List, Optional
 
 log = logging.getLogger("satsdr.cluster.broker")
 
 try:
     import zmq  # type: ignore[import-untyped]
+
     _ZMQ_AVAILABLE = True
 except ImportError:
     _ZMQ_AVAILABLE = False
 
-from .models import (
-    DecodeJob, DecodeResult, JobStatus, WorkerInfo,
-    serialize, deserialize,
-)
+from .models import (DecodeJob, DecodeResult, JobStatus, WorkerInfo,
+                     deserialize, serialize)
 
 # Wire-level command constants
 CMD_READY = b"READY"
@@ -91,9 +90,9 @@ class DecoderBroker:
         # State
         self._workers: Dict[str, WorkerInfo] = {}
         self._job_queue: deque = deque()
-        self._active_jobs: Dict[str, DecodeJob] = {}    # job_id → job
+        self._active_jobs: Dict[str, DecodeJob] = {}  # job_id → job
         self._completed_jobs: Dict[str, DecodeResult] = {}
-        self._worker_jobs: Dict[str, str] = {}           # worker_id → job_id
+        self._worker_jobs: Dict[str, str] = {}  # worker_id → job_id
         self._running = False
         self._lock = threading.Lock()
 
@@ -126,8 +125,10 @@ class DecoderBroker:
         poller.register(frontend, zmq.POLLIN)
         poller.register(backend, zmq.POLLIN)
 
-        log.info(f"Broker started | Frontend: {self.frontend_addr} | "
-                 f"Backend: {self.backend_addr} | Monitor: {self.monitor_addr}")
+        log.info(
+            f"Broker started | Frontend: {self.frontend_addr} | "
+            f"Backend: {self.backend_addr} | Monitor: {self.monitor_addr}"
+        )
 
         last_heartbeat_check = time.time()
 
@@ -174,8 +175,10 @@ class DecoderBroker:
             job.status = JobStatus.QUEUED
             self._job_queue.append(job)
             self._jobs_submitted += 1
-            log.info(f"Job submitted: {job.job_id} | decoder={job.decoder_type} | "
-                     f"path={job.iq_path}")
+            log.info(
+                f"Job submitted: {job.job_id} | decoder={job.decoder_type} | "
+                f"path={job.iq_path}"
+            )
         return job.job_id
 
     def get_status(self, job_id: str) -> Optional[dict]:
@@ -195,7 +198,9 @@ class DecoderBroker:
         with self._lock:
             return {
                 "workers_total": len(self._workers),
-                "workers_alive": sum(1 for w in self._workers.values() if w.is_alive(self.worker_timeout)),
+                "workers_alive": sum(
+                    1 for w in self._workers.values() if w.is_alive(self.worker_timeout)
+                ),
                 "queue_depth": len(self._job_queue),
                 "active_jobs": len(self._active_jobs),
                 "jobs_submitted": self._jobs_submitted,
@@ -222,10 +227,14 @@ class DecoderBroker:
             job = DecodeJob.from_dict(job_data)
             self.submit_job(job)
             # Acknowledge
-            frontend.send_multipart([
-                client_id, b"", CMD_STATUS,
-                serialize({"job_id": job.job_id, "status": "queued"}),
-            ])
+            frontend.send_multipart(
+                [
+                    client_id,
+                    b"",
+                    CMD_STATUS,
+                    serialize({"job_id": job.job_id, "status": "queued"}),
+                ]
+            )
             self._publish_event(monitor, "job_submitted", job.to_dict())
 
         elif cmd == CMD_STATUS:
@@ -235,10 +244,14 @@ class DecoderBroker:
                 status = self.get_status(job_id)
             else:
                 status = self.get_metrics()
-            frontend.send_multipart([
-                client_id, b"",
-                CMD_STATUS, serialize(status or {"error": "not_found"}),
-            ])
+            frontend.send_multipart(
+                [
+                    client_id,
+                    b"",
+                    CMD_STATUS,
+                    serialize(status or {"error": "not_found"}),
+                ]
+            )
 
     # ------------------------------------------------------------------
     # Internal: Backend (worker) message handler
@@ -265,8 +278,10 @@ class DecoderBroker:
                 worker.address = worker_id
                 worker.last_heartbeat = time.time()
                 self._workers[worker_id] = worker
-                log.info(f"Worker registered: {worker_id} | "
-                         f"caps={worker.capabilities} | gpu={worker.gpu_available}")
+                log.info(
+                    f"Worker registered: {worker_id} | "
+                    f"caps={worker.capabilities} | gpu={worker.gpu_available}"
+                )
                 self._publish_event(monitor, "worker_registered", worker.to_dict())
 
             elif cmd == CMD_HEARTBEAT:
@@ -274,7 +289,9 @@ class DecoderBroker:
                     self._workers[worker_id].last_heartbeat = time.time()
                     if len(frames) >= 4:
                         info = deserialize(frames[3])
-                        self._workers[worker_id].active_jobs = info.get("active_jobs", 0)
+                        self._workers[worker_id].active_jobs = info.get(
+                            "active_jobs", 0
+                        )
 
             elif cmd == CMD_RESULT:
                 # Worker completed a job
@@ -308,23 +325,32 @@ class DecoderBroker:
                 worker.active_jobs += 1
 
                 # Send job to worker
-                backend.send_multipart([
-                    worker.address.encode("utf-8"),
-                    b"",
-                    CMD_JOB,
-                    serialize(job.to_dict()),
-                ])
+                backend.send_multipart(
+                    [
+                        worker.address.encode("utf-8"),
+                        b"",
+                        CMD_JOB,
+                        serialize(job.to_dict()),
+                    ]
+                )
 
-                log.info(f"Dispatched job {job.job_id[:8]}… → worker {worker.worker_id[:8]}…")
-                self._publish_event(monitor, "job_dispatched", {
-                    "job_id": job.job_id,
-                    "worker_id": worker.worker_id,
-                })
+                log.info(
+                    f"Dispatched job {job.job_id[:8]}… → worker {worker.worker_id[:8]}…"
+                )
+                self._publish_event(
+                    monitor,
+                    "job_dispatched",
+                    {
+                        "job_id": job.job_id,
+                        "worker_id": worker.worker_id,
+                    },
+                )
 
     def _find_worker(self, decoder_type: str) -> Optional[WorkerInfo]:
         """Find the best available worker for a decoder type."""
         candidates = [
-            w for w in self._workers.values()
+            w
+            for w in self._workers.values()
             if w.is_alive(self.worker_timeout)
             and w.has_capacity()
             and w.can_decode(decoder_type)
@@ -374,7 +400,9 @@ class DecoderBroker:
                     job.status = JobStatus.QUEUED
                     job.worker_id = ""
                     self._job_queue.appendleft(job)
-                    log.info(f"Re-queued job {job_id[:8]}… (retry {job.retries}/{job.max_retries})")
+                    log.info(
+                        f"Re-queued job {job_id[:8]}… (retry {job.retries}/{job.max_retries})"
+                    )
 
     # ------------------------------------------------------------------
     # Internal: Heartbeat monitoring
@@ -383,7 +411,8 @@ class DecoderBroker:
         """Detect dead workers and re-queue their jobs."""
         with self._lock:
             dead_workers = [
-                wid for wid, w in self._workers.items()
+                wid
+                for wid, w in self._workers.items()
                 if not w.is_alive(self.worker_timeout)
             ]
             for wid in dead_workers:
@@ -400,7 +429,9 @@ class DecoderBroker:
                 job.status = JobStatus.QUEUED
                 job.worker_id = ""
                 self._job_queue.appendleft(job)
-                log.info(f"Re-queued job {job_id[:8]}… from dead worker {worker_id[:8]}…")
+                log.info(
+                    f"Re-queued job {job_id[:8]}… from dead worker {worker_id[:8]}…"
+                )
             del self._worker_jobs[worker_id]
 
         if worker_id in self._workers:
@@ -413,9 +444,11 @@ class DecoderBroker:
     def _publish_event(self, monitor, event_type: str, data: dict):
         """Publish a status event on the monitor PUB socket."""
         try:
-            monitor.send_multipart([
-                event_type.encode("utf-8"),
-                serialize(data),
-            ])
+            monitor.send_multipart(
+                [
+                    event_type.encode("utf-8"),
+                    serialize(data),
+                ]
+            )
         except Exception:
             pass

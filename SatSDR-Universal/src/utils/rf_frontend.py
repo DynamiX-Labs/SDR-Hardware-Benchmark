@@ -18,24 +18,27 @@ Usage:
     spurs = rf.scan_spurious_signals()
 """
 
-import numpy as np
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Tuple
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 log = logging.getLogger("satsdr.rf_frontend")
 
 # Physical constants
-BOLTZMANN_K = 1.380649e-23   # J/K
-T_AMBIENT = 290.0            # Standard noise temperature (K)
+BOLTZMANN_K = 1.380649e-23  # J/K
+T_AMBIENT = 290.0  # Standard noise temperature (K)
 
 
 # ─── Data Classes ────────────────────────────────────────────────────────
 
+
 @dataclass
 class NoiseFigureResult:
     """Noise figure measurement result."""
+
     noise_figure_db: float = 0.0
     noise_temperature_k: float = 0.0
     noise_floor_dbm: float = 0.0
@@ -55,6 +58,7 @@ class NoiseFigureResult:
 @dataclass
 class GainFlatnessResult:
     """Gain flatness measurement across frequency range."""
+
     frequencies_mhz: List[float] = field(default_factory=list)
     gain_db: List[float] = field(default_factory=list)
     noise_floor_dbm: List[float] = field(default_factory=list)
@@ -74,6 +78,7 @@ class GainFlatnessResult:
 @dataclass
 class IQImbalanceResult:
     """IQ imbalance measurement."""
+
     amplitude_imbalance_db: float = 0.0
     phase_imbalance_deg: float = 0.0
     dc_offset_i: float = 0.0
@@ -93,6 +98,7 @@ class IQImbalanceResult:
 @dataclass
 class SpuriousSignal:
     """A single spurious signal detection."""
+
     frequency_offset_hz: float = 0.0
     power_dbfs: float = 0.0
     spur_type: str = ""  # "dc_offset", "lo_leakage", "image", "harmonic", "unknown"
@@ -108,12 +114,13 @@ class SpuriousSignal:
 @dataclass
 class RFFrontendProfile:
     """Complete RF frontend characterization profile."""
+
     noise_figure: Optional[NoiseFigureResult] = None
     gain_flatness: Optional[GainFlatnessResult] = None
     iq_imbalance: Optional[IQImbalanceResult] = None
     spurious_signals: List[SpuriousSignal] = field(default_factory=list)
-    sfdr_db: float = 0.0              # Spurious-free dynamic range
-    enob: float = 0.0                 # Effective number of bits
+    sfdr_db: float = 0.0  # Spurious-free dynamic range
+    enob: float = 0.0  # Effective number of bits
     frequency_accuracy_ppm: float = 0.0
     timestamp: str = ""
 
@@ -141,13 +148,25 @@ class RFFrontendProfile:
             "─" * 60,
         ]
         if self.noise_figure:
-            lines.append(f"  Noise Figure:     {self.noise_figure.noise_figure_db:.2f} dB")
-            lines.append(f"  Noise Floor:      {self.noise_figure.noise_floor_dbm:.1f} dBm")
+            lines.append(
+                f"  Noise Figure:     {self.noise_figure.noise_figure_db:.2f} dB"
+            )
+            lines.append(
+                f"  Noise Floor:      {self.noise_figure.noise_floor_dbm:.1f} dBm"
+            )
         if self.iq_imbalance:
-            lines.append(f"  IQ Amp Imbalance: {self.iq_imbalance.amplitude_imbalance_db:.3f} dB")
-            lines.append(f"  IQ Phase Error:   {self.iq_imbalance.phase_imbalance_deg:.3f}°")
-            lines.append(f"  DC Offset (I/Q):  {self.iq_imbalance.dc_offset_i:.6f} / {self.iq_imbalance.dc_offset_q:.6f}")
-            lines.append(f"  Image Rejection:  {self.iq_imbalance.image_rejection_db:.1f} dB")
+            lines.append(
+                f"  IQ Amp Imbalance: {self.iq_imbalance.amplitude_imbalance_db:.3f} dB"
+            )
+            lines.append(
+                f"  IQ Phase Error:   {self.iq_imbalance.phase_imbalance_deg:.3f}°"
+            )
+            lines.append(
+                f"  DC Offset (I/Q):  {self.iq_imbalance.dc_offset_i:.6f} / {self.iq_imbalance.dc_offset_q:.6f}"
+            )
+            lines.append(
+                f"  Image Rejection:  {self.iq_imbalance.image_rejection_db:.1f} dB"
+            )
         lines.append(f"  SFDR:             {self.sfdr_db:.1f} dB")
         lines.append(f"  ENOB:             {self.enob:.1f} bits")
         lines.append(f"  Freq Accuracy:    {self.frequency_accuracy_ppm:.2f} ppm")
@@ -158,6 +177,7 @@ class RFFrontendProfile:
 
 
 # ─── RF Frontend Characterizer ───────────────────────────────────────────
+
 
 class RFFrontendCharacterizer:
     """
@@ -178,8 +198,8 @@ class RFFrontendCharacterizer:
     def __init__(self, hw_manager, n_samples: int = 262144):
         self.hw = hw_manager
         self.n_samples = n_samples
-        self._sample_rate = getattr(hw_manager, 'sample_rate', 250e3)
-        self._frequency = getattr(hw_manager, 'frequency', 100e6)
+        self._sample_rate = getattr(hw_manager, "sample_rate", 250e3)
+        self._frequency = getattr(hw_manager, "frequency", 100e6)
 
     def full_characterization(self) -> RFFrontendProfile:
         """
@@ -207,8 +227,10 @@ class RFFrontendCharacterizer:
         # 2. IQ imbalance measurement
         try:
             profile.iq_imbalance = self.measure_iq_imbalance()
-            log.info(f"IQ imbalance: amp={profile.iq_imbalance.amplitude_imbalance_db:.3f}dB "
-                     f"phase={profile.iq_imbalance.phase_imbalance_deg:.3f}°")
+            log.info(
+                f"IQ imbalance: amp={profile.iq_imbalance.amplitude_imbalance_db:.3f}dB "
+                f"phase={profile.iq_imbalance.phase_imbalance_deg:.3f}°"
+            )
         except Exception as e:
             log.warning(f"IQ imbalance measurement failed: {e}")
 
@@ -323,8 +345,8 @@ class RFFrontendCharacterizer:
         q_ac = q_channel - result.dc_offset_q
 
         # Amplitude imbalance: ratio of RMS powers
-        rms_i = np.sqrt(np.mean(i_ac ** 2))
-        rms_q = np.sqrt(np.mean(q_ac ** 2))
+        rms_i = np.sqrt(np.mean(i_ac**2))
+        rms_q = np.sqrt(np.mean(q_ac**2))
 
         if rms_q > 0:
             amp_ratio = rms_i / rms_q
@@ -358,7 +380,9 @@ class RFFrontendCharacterizer:
 
     # ── Spurious Signal Detection ──
 
-    def scan_spurious_signals(self, threshold_dbfs: float = -50.0) -> List[SpuriousSignal]:
+    def scan_spurious_signals(
+        self, threshold_dbfs: float = -50.0
+    ) -> List[SpuriousSignal]:
         """
         Scan for spurious signals in the receiver passband.
 
@@ -389,14 +413,17 @@ class RFFrontendCharacterizer:
         center_idx = n_fft // 2
         dc_power = power_dbfs[center_idx]
         if dc_power > noise_floor + 10.0:
-            spurs.append(SpuriousSignal(
-                frequency_offset_hz=0.0,
-                power_dbfs=float(dc_power),
-                spur_type="dc_offset",
-            ))
+            spurs.append(
+                SpuriousSignal(
+                    frequency_offset_hz=0.0,
+                    power_dbfs=float(dc_power),
+                    spur_type="dc_offset",
+                )
+            )
 
         # Find peaks above threshold
         from scipy.signal import find_peaks as _find_peaks
+
         try:
             peaks, properties = _find_peaks(
                 power_dbfs,
@@ -428,15 +455,20 @@ class RFFrontendCharacterizer:
             else:
                 # Check if it's a harmonic of something
                 for harmonic in range(2, 6):
-                    if abs(abs_offset * harmonic - self._sample_rate / 2) < self._sample_rate * 0.02:
+                    if (
+                        abs(abs_offset * harmonic - self._sample_rate / 2)
+                        < self._sample_rate * 0.02
+                    ):
                         spur_type = f"harmonic_{harmonic}"
                         break
 
-            spurs.append(SpuriousSignal(
-                frequency_offset_hz=freq_offset,
-                power_dbfs=power,
-                spur_type=spur_type,
-            ))
+            spurs.append(
+                SpuriousSignal(
+                    frequency_offset_hz=freq_offset,
+                    power_dbfs=power,
+                    spur_type=spur_type,
+                )
+            )
 
         return spurs
 
@@ -562,9 +594,9 @@ class RFFrontendCharacterizer:
 
     # ── Gain Flatness Profile ──
 
-    def gain_flatness_profile(self, start_freq: float = None,
-                               stop_freq: float = None,
-                               n_steps: int = 20) -> GainFlatnessResult:
+    def gain_flatness_profile(
+        self, start_freq: float = None, stop_freq: float = None, n_steps: int = 20
+    ) -> GainFlatnessResult:
         """
         Measure gain/noise-floor across a frequency range.
 
@@ -596,7 +628,7 @@ class RFFrontendCharacterizer:
                 self.hw.configure(
                     frequency=freq,
                     sample_rate=self._sample_rate,
-                    gain=getattr(self.hw, 'gain', 30.0)
+                    gain=getattr(self.hw, "gain", 30.0),
                 )
                 time.sleep(0.05)  # Settle time
 
@@ -616,7 +648,9 @@ class RFFrontendCharacterizer:
                     result.gain_db.append(relative)
 
             except Exception as e:
-                log.warning(f"Gain flatness measurement failed at {freq/1e6:.3f} MHz: {e}")
+                log.warning(
+                    f"Gain flatness measurement failed at {freq/1e6:.3f} MHz: {e}"
+                )
 
         # Calculate max ripple
         if result.gain_db:
@@ -627,7 +661,7 @@ class RFFrontendCharacterizer:
             self.hw.configure(
                 frequency=self._frequency,
                 sample_rate=self._sample_rate,
-                gain=getattr(self.hw, 'gain', 30.0)
+                gain=getattr(self.hw, "gain", 30.0),
             )
         except Exception:
             pass
@@ -636,6 +670,7 @@ class RFFrontendCharacterizer:
 
 
 # ─── LNA Cascade Calculator ─────────────────────────────────────────────
+
 
 class LNACascadeCalculator:
     """
@@ -671,13 +706,15 @@ class LNACascadeCalculator:
         gain_db : float
             Gain of this stage in dB (negative for loss)
         """
-        self.stages.append({
-            "name": name,
-            "nf_db": nf_db,
-            "gain_db": gain_db,
-            "nf_linear": 10 ** (nf_db / 10.0),
-            "gain_linear": 10 ** (gain_db / 10.0),
-        })
+        self.stages.append(
+            {
+                "name": name,
+                "nf_db": nf_db,
+                "gain_db": gain_db,
+                "nf_linear": 10 ** (nf_db / 10.0),
+                "gain_linear": 10 ** (gain_db / 10.0),
+            }
+        )
 
     def compute(self) -> dict:
         """
@@ -698,10 +735,12 @@ class LNACascadeCalculator:
         total_nf_linear = self.stages[0]["nf_linear"]
         cumulative_gain = self.stages[0]["gain_linear"]
         total_gain_db = self.stages[0]["gain_db"]
-        contributions = [{
-            "name": self.stages[0]["name"],
-            "contribution_db": self.stages[0]["nf_db"],
-        }]
+        contributions = [
+            {
+                "name": self.stages[0]["name"],
+                "contribution_db": self.stages[0]["nf_db"],
+            }
+        ]
 
         for i in range(1, len(self.stages)):
             stage = self.stages[i]
@@ -711,10 +750,14 @@ class LNACascadeCalculator:
             cumulative_gain *= stage["gain_linear"]
             total_gain_db += stage["gain_db"]
 
-            contributions.append({
-                "name": stage["name"],
-                "contribution_db": 10.0 * np.log10(1.0 + contribution) if contribution > 0 else 0.0,
-            })
+            contributions.append(
+                {
+                    "name": stage["name"],
+                    "contribution_db": (
+                        10.0 * np.log10(1.0 + contribution) if contribution > 0 else 0.0
+                    ),
+                }
+            )
 
         total_nf_db = 10.0 * np.log10(total_nf_linear)
         noise_temp = T_AMBIENT * (total_nf_linear - 1.0)

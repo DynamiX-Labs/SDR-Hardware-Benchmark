@@ -10,15 +10,17 @@ Upgraded from placeholder stubs with real implementations inspired by:
 DynamiX Labs
 """
 
-import numpy as np
 import logging
 from typing import Optional, Tuple
+
+import numpy as np
 
 log = logging.getLogger("cubesat.fec")
 
 
 # ── Galois Field GF(2^8) Arithmetic ─────────────────────────────────────
 # Used by Reed-Solomon. Primitive polynomial: x^8 + x^4 + x^3 + x^2 + 1 = 0x11D
+
 
 class GF256:
     """Galois Field GF(2^8) arithmetic for Reed-Solomon coding."""
@@ -74,10 +76,12 @@ _gf = GF256()
 
 # ── Frame Synchronizer ───────────────────────────────────────────────────
 
+
 class FrameSynchronizer:
     """
     Frame synchronizer with CCSDS sync word detection and bit-slip correction.
     """
+
     CCSDS_SYNC_WORD = bytes.fromhex("1ACFFC1D")
 
     def __init__(self, sync_word: bytes = None, threshold: int = 4):
@@ -88,9 +92,7 @@ class FrameSynchronizer:
         """
         self.sync_word = sync_word or self.CCSDS_SYNC_WORD
         self.threshold = threshold
-        self._sync_bits = np.unpackbits(
-            np.frombuffer(self.sync_word, dtype=np.uint8)
-        )
+        self._sync_bits = np.unpackbits(np.frombuffer(self.sync_word, dtype=np.uint8))
         self._lock_count = 0
         self._total_searches = 0
 
@@ -119,8 +121,11 @@ class FrameSynchronizer:
         # Cross-correlate using bipolar mapping
         bipolar_hard = hard_bits * 2 - 1
         bipolar_sync = sync_bits * 2 - 1
-        corr = np.correlate(bipolar_hard.astype(np.float32),
-                            bipolar_sync.astype(np.float32), mode='valid')
+        corr = np.correlate(
+            bipolar_hard.astype(np.float32),
+            bipolar_sync.astype(np.float32),
+            mode="valid",
+        )
 
         # Find best match
         max_idx = int(np.argmax(corr))
@@ -131,9 +136,11 @@ class FrameSynchronizer:
         if max_corr >= min_required:
             self._lock_count += 1
             bit_errors = sync_len - int(max_corr)
-            log.info(f"Sync Word LOCKED at bit {max_idx} "
-                     f"(corr={max_corr}/{sync_len}, errors={bit_errors})")
-            aligned = soft_symbols[max_idx + sync_len:]
+            log.info(
+                f"Sync Word LOCKED at bit {max_idx} "
+                f"(corr={max_corr}/{sync_len}, errors={bit_errors})"
+            )
+            aligned = soft_symbols[max_idx + sync_len :]
             return aligned, max_idx
 
         log.warning(f"Sync Word not found (best corr={max_corr}/{sync_len})")
@@ -149,6 +156,7 @@ class FrameSynchronizer:
 
 
 # ── Reed-Solomon RS(255,223) Codec ───────────────────────────────────────
+
 
 class ReedSolomonCodec:
     """
@@ -200,7 +208,9 @@ class ReedSolomonCodec:
             n bytes (message + parity)
         """
         if len(message) != self.k:
-            raise ValueError(f"Message must be exactly {self.k} bytes, got {len(message)}")
+            raise ValueError(
+                f"Message must be exactly {self.k} bytes, got {len(message)}"
+            )
 
         # Initialize with message shifted up by nsym positions
         result = list(message) + [0] * self.nsym
@@ -212,7 +222,7 @@ class ReedSolomonCodec:
                     result[i + j] ^= _gf.multiply(self.generator[j], coeff)
 
         # Replace message portion (first k bytes stay as original)
-        encoded = list(message) + result[self.k:]
+        encoded = list(message) + result[self.k :]
         return bytes(encoded)
 
     def decode(self, codeword: bytes) -> Tuple[bytes, int]:
@@ -227,14 +237,14 @@ class ReedSolomonCodec:
             Raises ValueError if uncorrectable.
         """
         if len(codeword) > self.n:
-            codeword = codeword[:self.n]
+            codeword = codeword[: self.n]
 
         # Calculate syndromes
         syndromes = self._compute_syndromes(list(codeword))
 
         # Check if all syndromes are zero (no errors)
         if all(s == 0 for s in syndromes):
-            return codeword[:self.k], 0
+            return codeword[: self.k], 0
 
         # Berlekamp-Massey to find error locator polynomial
         error_locator = self._berlekamp_massey(syndromes)
@@ -256,7 +266,7 @@ class ReedSolomonCodec:
 
         errors = len(error_positions)
         log.debug(f"RS decoded: {errors} errors corrected")
-        return bytes(corrected[:self.k]), errors
+        return bytes(corrected[: self.k]), errors
 
     def _compute_syndromes(self, codeword: list) -> list:
         """Compute syndromes S_1 through S_nsym."""
@@ -303,7 +313,7 @@ class ReedSolomonCodec:
                         C[i] ^= _gf.multiply(coeff, B[i - m])
                 m += 1
 
-        return C[:L + 1]
+        return C[: L + 1]
 
     def _chien_search(self, error_locator: list) -> list:
         """Chien search to find error positions from error locator polynomial."""
@@ -312,20 +322,27 @@ class ReedSolomonCodec:
             # Evaluate error_locator at alpha^(-i)
             val = 0
             for j, coeff in enumerate(error_locator):
-                val ^= _gf.multiply(coeff, _gf.power(
-                    _gf.exp_table[(255 - i * j) % 255] if j > 0 else 1, 1
-                ) if j > 0 else coeff)
+                val ^= _gf.multiply(
+                    coeff,
+                    (
+                        _gf.power(_gf.exp_table[(255 - i * j) % 255] if j > 0 else 1, 1)
+                        if j > 0
+                        else coeff
+                    ),
+                )
             # Simplified evaluation
             result = error_locator[0]
             for j in range(1, len(error_locator)):
-                result ^= _gf.multiply(error_locator[j],
-                                        _gf.exp_table[(255 - i) * j % 255])
+                result ^= _gf.multiply(
+                    error_locator[j], _gf.exp_table[(255 - i) * j % 255]
+                )
             if result == 0:
                 positions.append(i)
         return positions
 
-    def _forney(self, syndromes: list, error_locator: list,
-                error_positions: list) -> list:
+    def _forney(
+        self, syndromes: list, error_locator: list, error_positions: list
+    ) -> list:
         """Forney algorithm for error magnitude computation."""
         magnitudes = []
         for pos in error_positions:
@@ -340,8 +357,7 @@ class ReedSolomonCodec:
             # Formal derivative of error locator at xi_inv
             deriv = 0
             for i in range(1, len(error_locator), 2):
-                deriv ^= _gf.multiply(error_locator[i],
-                                       _gf.power(xi_inv, i - 1))
+                deriv ^= _gf.multiply(error_locator[i], _gf.power(xi_inv, i - 1))
 
             if deriv == 0:
                 magnitudes.append(0)
@@ -353,6 +369,7 @@ class ReedSolomonCodec:
 
 
 # ── Viterbi Decoder ──────────────────────────────────────────────────────
+
 
 class ViterbiDecoder:
     """
@@ -385,8 +402,8 @@ class ViterbiDecoder:
                 self.next_state[state, bit] = next_st
 
                 # Compute encoded output bits
-                o1 = bin(reg & self.G1).count('1') % 2
-                o2 = bin(reg & self.G2).count('1') % 2
+                o1 = bin(reg & self.G1).count("1") % 2
+                o2 = bin(reg & self.G2).count("1") % 2
                 self.output[state, bit, 0] = o1
                 self.output[state, bit, 1] = o2
 
@@ -461,8 +478,8 @@ class ViterbiDecoder:
 
         for bit in bits:
             reg = (state << 1) | int(bit)
-            o1 = bin(reg & self.G1).count('1') % 2
-            o2 = bin(reg & self.G2).count('1') % 2
+            o1 = bin(reg & self.G1).count("1") % 2
+            o2 = bin(reg & self.G2).count("1") % 2
             output.extend([2.0 * o1 - 1.0, 2.0 * o2 - 1.0])
             state = reg & (self.NUM_STATES - 1)
 
@@ -470,6 +487,7 @@ class ViterbiDecoder:
 
 
 # ── Legacy API compatibility ─────────────────────────────────────────────
+
 
 class FECDecoder:
     """Legacy wrapper for backward compatibility."""
@@ -490,16 +508,16 @@ class FECDecoder:
         return cls._viterbi
 
     @staticmethod
-    def viterbi_decode(soft_symbols: np.ndarray, rate: str = "1/2",
-                       k: int = 7) -> bytes:
+    def viterbi_decode(
+        soft_symbols: np.ndarray, rate: str = "1/2", k: int = 7
+    ) -> bytes:
         """Decode soft symbols using Viterbi algorithm."""
         log.debug(f"Applying Viterbi decoding (Rate={rate}, K={k})")
         decoder = FECDecoder._get_viterbi()
         return decoder.decode(soft_symbols)
 
     @staticmethod
-    def reed_solomon_decode(data: bytes, n: int = 255,
-                            k: int = 223) -> bytes:
+    def reed_solomon_decode(data: bytes, n: int = 255, k: int = 223) -> bytes:
         """Decode Reed-Solomon codeword."""
         log.debug(f"Applying Reed-Solomon decoding (RS({n},{k}))")
         codec = FECDecoder._get_rs()

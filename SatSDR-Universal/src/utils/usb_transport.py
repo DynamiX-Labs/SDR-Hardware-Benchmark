@@ -19,26 +19,29 @@ Usage:
     info = profiler.probe_device("rtlsdr")
 """
 
-import numpy as np
 import logging
-import time
-import threading
 import platform
 import struct
+import threading
+import time
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Tuple
 from multiprocessing import shared_memory
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 log = logging.getLogger("satsdr.usb_transport")
 
 
 # ─── Data Classes ────────────────────────────────────────────────────────
 
+
 @dataclass
 class BufferEvent:
     """A single overflow or underflow event with timing metadata."""
-    timestamp: float          # time.perf_counter() epoch
-    event_type: str           # "overflow" | "underflow"
+
+    timestamp: float  # time.perf_counter() epoch
+    event_type: str  # "overflow" | "underflow"
     samples_lost: int = 0
     buffer_utilization: float = 0.0  # 0.0 - 1.0
 
@@ -54,9 +57,10 @@ class BufferEvent:
 @dataclass
 class USBDeviceInfo:
     """USB bus characteristics for an SDR device."""
-    usb_version: str = "Unknown"       # "2.0", "3.0", "3.1"
-    usb_speed: str = "Unknown"         # "High Speed", "Super Speed"
-    max_throughput_mbps: float = 0.0   # theoretical max
+
+    usb_version: str = "Unknown"  # "2.0", "3.0", "3.1"
+    usb_speed: str = "Unknown"  # "High Speed", "Super Speed"
+    max_throughput_mbps: float = 0.0  # theoretical max
     actual_throughput_mbps: float = 0.0
     bus_id: str = ""
     port_path: str = ""
@@ -84,6 +88,7 @@ class USBDeviceInfo:
 @dataclass
 class TransportMetrics:
     """Accumulated transport-layer performance counters."""
+
     total_samples_written: int = 0
     total_samples_read: int = 0
     total_overflows: int = 0
@@ -107,6 +112,7 @@ class TransportMetrics:
 
 
 # ─── Lock-Free Shared Memory Ring Buffer ─────────────────────────────────
+
 
 class SharedRingBuffer:
     """
@@ -132,7 +138,7 @@ class SharedRingBuffer:
     """
 
     HEADER_SIZE = 16  # 8 bytes write_cursor + 8 bytes read_cursor
-    SAMPLE_SIZE = 8   # complex64 = 4 bytes real + 4 bytes imag
+    SAMPLE_SIZE = 8  # complex64 = 4 bytes real + 4 bytes imag
 
     def __init__(self, capacity_samples: int = 2_000_000, name: str = None):
         self.capacity = capacity_samples
@@ -150,8 +156,9 @@ class SharedRingBuffer:
 
         self._buf = self._shm.buf
         self._data_view = np.ndarray(
-            (capacity_samples,), dtype=np.complex64,
-            buffer=self._shm.buf[self.HEADER_SIZE:]
+            (capacity_samples,),
+            dtype=np.complex64,
+            buffer=self._shm.buf[self.HEADER_SIZE :],
         )
 
         # Initialize cursors to zero
@@ -171,16 +178,16 @@ class SharedRingBuffer:
     # ── Cursor operations (atomic via struct pack/unpack) ──
 
     def _get_write_cursor(self) -> int:
-        return struct.unpack_from('<Q', self._buf, 0)[0]
+        return struct.unpack_from("<Q", self._buf, 0)[0]
 
     def _set_write_cursor(self, val: int):
-        struct.pack_into('<Q', self._buf, 0, val)
+        struct.pack_into("<Q", self._buf, 0, val)
 
     def _get_read_cursor(self) -> int:
-        return struct.unpack_from('<Q', self._buf, 8)[0]
+        return struct.unpack_from("<Q", self._buf, 8)[0]
 
     def _set_read_cursor(self, val: int):
-        struct.pack_into('<Q', self._buf, 8, val)
+        struct.pack_into("<Q", self._buf, 8, val)
 
     # ── Public API ──
 
@@ -218,12 +225,14 @@ class SharedRingBuffer:
             n = space
             samples = samples[:n]
             self.metrics.total_overflows += 1
-            self.metrics.events.append(BufferEvent(
-                timestamp=t0,
-                event_type="overflow",
-                samples_lost=dropped,
-                buffer_utilization=self.utilization,
-            ))
+            self.metrics.events.append(
+                BufferEvent(
+                    timestamp=t0,
+                    event_type="overflow",
+                    samples_lost=dropped,
+                    buffer_utilization=self.utilization,
+                )
+            )
             log.warning(f"Ring buffer overflow: {dropped} samples dropped")
 
         if n == 0:
@@ -240,7 +249,7 @@ class SharedRingBuffer:
             # Wrap-around write
             first = self.capacity - start
             self._data_view[start:] = samples[:first].astype(np.complex64)
-            self._data_view[:n - first] = samples[first:].astype(np.complex64)
+            self._data_view[: n - first] = samples[first:].astype(np.complex64)
 
         self._set_write_cursor(w + n)
         self.metrics.total_samples_written += n
@@ -269,12 +278,14 @@ class SharedRingBuffer:
 
         if available < n:
             self.metrics.total_underflows += 1
-            self.metrics.events.append(BufferEvent(
-                timestamp=t0,
-                event_type="underflow",
-                samples_lost=n - available,
-                buffer_utilization=self.utilization,
-            ))
+            self.metrics.events.append(
+                BufferEvent(
+                    timestamp=t0,
+                    event_type="underflow",
+                    samples_lost=n - available,
+                    buffer_utilization=self.utilization,
+                )
+            )
             return None
 
         r = self._get_read_cursor()
@@ -285,10 +296,9 @@ class SharedRingBuffer:
             out = self._data_view[start:end].copy()
         else:
             first = self.capacity - start
-            out = np.concatenate([
-                self._data_view[start:].copy(),
-                self._data_view[:n - first].copy()
-            ])
+            out = np.concatenate(
+                [self._data_view[start:].copy(), self._data_view[: n - first].copy()]
+            )
 
         self._set_read_cursor(r + n)
         self.metrics.total_samples_read += n
@@ -315,10 +325,9 @@ class SharedRingBuffer:
             return self._data_view[start:end].copy()
         else:
             first = self.capacity - start
-            return np.concatenate([
-                self._data_view[start:].copy(),
-                self._data_view[:n - first].copy()
-            ])
+            return np.concatenate(
+                [self._data_view[start:].copy(), self._data_view[: n - first].copy()]
+            )
 
     def flush(self):
         """Discard all buffered data."""
@@ -338,6 +347,7 @@ class SharedRingBuffer:
 
 
 # ─── USB Transport Profiler ──────────────────────────────────────────────
+
 
 class USBTransportProfiler:
     """
@@ -362,11 +372,11 @@ class USBTransportProfiler:
 
     # USB speed theoretical maximums
     USB_SPEEDS = {
-        "1.1": 12.0,      # Full Speed: 12 Mbps
-        "2.0": 480.0,     # High Speed: 480 Mbps
-        "3.0": 5000.0,    # Super Speed: 5 Gbps
-        "3.1": 10000.0,   # Super Speed+: 10 Gbps
-        "3.2": 20000.0,   # Super Speed++ : 20 Gbps
+        "1.1": 12.0,  # Full Speed: 12 Mbps
+        "2.0": 480.0,  # High Speed: 480 Mbps
+        "3.0": 5000.0,  # Super Speed: 5 Gbps
+        "3.1": 10000.0,  # Super Speed+: 10 Gbps
+        "3.2": 20000.0,  # Super Speed++ : 20 Gbps
     }
 
     def __init__(self):
@@ -396,6 +406,7 @@ class USBTransportProfiler:
     def _enumerate_linux(self) -> List[USBDeviceInfo]:
         """Enumerate USB devices via sysfs on Linux."""
         import os
+
         devices = []
         usb_path = "/sys/bus/usb/devices"
 
@@ -465,13 +476,20 @@ class USBTransportProfiler:
         devices = []
         try:
             import subprocess
+
             result = subprocess.run(
-                ["powershell", "-Command",
-                 "Get-PnpDevice -Class USB | Select-Object InstanceId, FriendlyName, Status | ConvertTo-Json"],
-                capture_output=True, text=True, timeout=10
+                [
+                    "powershell",
+                    "-Command",
+                    "Get-PnpDevice -Class USB | Select-Object InstanceId, FriendlyName, Status | ConvertTo-Json",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if result.returncode == 0 and result.stdout.strip():
                 import json
+
                 pnp_devices = json.loads(result.stdout)
                 if isinstance(pnp_devices, dict):
                     pnp_devices = [pnp_devices]
@@ -507,6 +525,7 @@ class USBTransportProfiler:
         devices = []
         try:
             import SoapySDR
+
             results = SoapySDR.Device.enumerate()
             for r in results:
                 info = USBDeviceInfo()
@@ -535,7 +554,7 @@ class USBTransportProfiler:
     def _read_sysfs(self, path: str) -> str:
         """Read a single-line sysfs file."""
         try:
-            with open(path, 'r') as f:
+            with open(path, "r") as f:
                 return f.read().strip()
         except (FileNotFoundError, PermissionError):
             return ""
@@ -638,6 +657,7 @@ class USBTransportProfiler:
 
 # ─── Throughput Estimator ────────────────────────────────────────────────
 
+
 class ThroughputEstimator:
     """
     Measures actual sustained IQ throughput from an SDR device.
@@ -652,8 +672,9 @@ class ThroughputEstimator:
         self.ring = ring_buffer or SharedRingBuffer(capacity_samples=4_000_000)
         self._results = {}
 
-    def measure(self, hw_manager, duration_s: float = 10.0,
-                chunk_size: int = 65536) -> dict:
+    def measure(
+        self, hw_manager, duration_s: float = 10.0, chunk_size: int = 65536
+    ) -> dict:
         """
         Measure sustained throughput from an SDR device.
 
@@ -710,7 +731,7 @@ class ThroughputEstimator:
 
         elapsed = time.perf_counter() - start
         actual_rate = total_samples / elapsed if elapsed > 0 else 0
-        requested_rate = getattr(hw_manager, 'sample_rate', 0)
+        requested_rate = getattr(hw_manager, "sample_rate", 0)
         efficiency = (actual_rate / requested_rate * 100) if requested_rate > 0 else 0
 
         read_times_arr = np.array(read_times) if read_times else np.array([0])

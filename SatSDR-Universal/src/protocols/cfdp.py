@@ -17,16 +17,16 @@ Usage:
     receiver.start()  # Blocking — processes incoming PDUs
 """
 
-import hashlib
-import struct
 import enum
-import time
-import uuid
+import hashlib
 import logging
 import os
+import struct
+import time
+import uuid
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Callable, Any
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 log = logging.getLogger("satsdr.cfdp")
 
@@ -42,12 +42,14 @@ SEGMENT_SIZE = 1024  # Default file data segment size (bytes)
 
 class PDUType(enum.IntEnum):
     """CFDP PDU types."""
+
     FILE_DIRECTIVE = 0
     FILE_DATA = 1
 
 
 class DirectiveCode(enum.IntEnum):
     """CFDP File Directive codes (Table 5-4)."""
+
     EOF_PDU = 0x04
     FINISHED = 0x05
     ACK = 0x06
@@ -59,12 +61,14 @@ class DirectiveCode(enum.IntEnum):
 
 class TransmissionMode(enum.IntEnum):
     """CFDP transmission modes."""
-    ACKNOWLEDGED = 0      # Class 2 — reliable with ACK/NAK
-    UNACKNOWLEDGED = 1    # Class 1 — unreliable (fire-and-forget)
+
+    ACKNOWLEDGED = 0  # Class 2 — reliable with ACK/NAK
+    UNACKNOWLEDGED = 1  # Class 1 — unreliable (fire-and-forget)
 
 
 class ConditionCode(enum.IntEnum):
     """CFDP condition codes (Table 5-5)."""
+
     NO_ERROR = 0x0
     POSITIVE_ACK_LIMIT = 0x1
     KEEP_ALIVE_LIMIT = 0x2
@@ -79,6 +83,7 @@ class ConditionCode(enum.IntEnum):
 
 class TransactionStatus(enum.Enum):
     """Transaction lifecycle states."""
+
     IDLE = "idle"
     ACTIVE = "active"
     SENDING_METADATA = "sending_metadata"
@@ -100,11 +105,12 @@ class TransactionStatus(enum.Enum):
 @dataclass
 class PDUHeader:
     """CFDP PDU Fixed Header (Section 5.1)."""
+
     version: int = CFDP_VERSION
     pdu_type: PDUType = PDUType.FILE_DIRECTIVE
-    direction: int = 0          # 0 = toward receiver, 1 = toward sender
+    direction: int = 0  # 0 = toward receiver, 1 = toward sender
     transmission_mode: TransmissionMode = TransmissionMode.UNACKNOWLEDGED
-    crc_flag: int = 0           # 0 = CRC not present, 1 = CRC present
+    crc_flag: int = 0  # 0 = CRC not present, 1 = CRC present
     data_length: int = 0
     source_entity_id: int = 0
     transaction_seq: int = 0
@@ -152,6 +158,7 @@ class PDUHeader:
 @dataclass
 class MetadataPDU:
     """CFDP Metadata PDU (Section 5.2.5)."""
+
     directive_code: int = DirectiveCode.METADATA
     closure_requested: bool = False
     file_size: int = 0
@@ -162,20 +169,25 @@ class MetadataPDU:
     def pack(self) -> bytes:
         src_bytes = self.source_filename.encode("utf-8")
         dst_bytes = self.destination_filename.encode("utf-8")
-        return struct.pack(
-            "!B?IB",
-            self.directive_code,
-            self.closure_requested,
-            self.file_size,
-            len(src_bytes),
-        ) + src_bytes + struct.pack("!B", len(dst_bytes)) + dst_bytes
+        return (
+            struct.pack(
+                "!B?IB",
+                self.directive_code,
+                self.closure_requested,
+                self.file_size,
+                len(src_bytes),
+            )
+            + src_bytes
+            + struct.pack("!B", len(dst_bytes))
+            + dst_bytes
+        )
 
     @classmethod
     def unpack(cls, data: bytes) -> "MetadataPDU":
         code, closure, fsize, src_len = struct.unpack("!B?IB", data[:7])
-        src = data[7:7 + src_len].decode("utf-8")
+        src = data[7 : 7 + src_len].decode("utf-8")
         dst_len = data[7 + src_len]
-        dst = data[8 + src_len:8 + src_len + dst_len].decode("utf-8")
+        dst = data[8 + src_len : 8 + src_len + dst_len].decode("utf-8")
         return cls(
             directive_code=code,
             closure_requested=closure,
@@ -188,6 +200,7 @@ class MetadataPDU:
 @dataclass
 class FileDataPDU:
     """CFDP File Data PDU (Section 5.3)."""
+
     offset: int = 0
     data: bytes = b""
 
@@ -203,6 +216,7 @@ class FileDataPDU:
 @dataclass
 class EOFPDU:
     """CFDP EOF PDU (Section 5.2.2)."""
+
     directive_code: int = DirectiveCode.EOF_PDU
     condition_code: ConditionCode = ConditionCode.NO_ERROR
     file_checksum: int = 0
@@ -231,32 +245,39 @@ class EOFPDU:
 @dataclass
 class FinishedPDU:
     """CFDP Finished PDU (Section 5.2.3)."""
+
     directive_code: int = DirectiveCode.FINISHED
     condition_code: ConditionCode = ConditionCode.NO_ERROR
     delivery_code: int = 0  # 0 = complete, 1 = incomplete
 
     def pack(self) -> bytes:
-        return struct.pack("!BBB", self.directive_code,
-                           self.condition_code.value, self.delivery_code)
+        return struct.pack(
+            "!BBB", self.directive_code, self.condition_code.value, self.delivery_code
+        )
 
     @classmethod
     def unpack(cls, data: bytes) -> "FinishedPDU":
         code, cond, delivery = struct.unpack("!BBB", data[:3])
-        return cls(directive_code=code,
-                   condition_code=ConditionCode(cond), delivery_code=delivery)
+        return cls(
+            directive_code=code,
+            condition_code=ConditionCode(cond),
+            delivery_code=delivery,
+        )
 
 
 @dataclass
 class NAKPDU:
     """CFDP NAK PDU (Section 5.2.6) — request retransmission."""
+
     directive_code: int = DirectiveCode.NAK
     scope_start: int = 0
     scope_end: int = 0
     segment_requests: List[tuple] = field(default_factory=list)
 
     def pack(self) -> bytes:
-        data = struct.pack("!BII", self.directive_code,
-                           self.scope_start, self.scope_end)
+        data = struct.pack(
+            "!BII", self.directive_code, self.scope_start, self.scope_end
+        )
         for start, end in self.segment_requests:
             data += struct.pack("!II", start, end)
         return data
@@ -267,11 +288,15 @@ class NAKPDU:
         segs = []
         pos = 9
         while pos + 8 <= len(data):
-            seg_s, seg_e = struct.unpack("!II", data[pos:pos + 8])
+            seg_s, seg_e = struct.unpack("!II", data[pos : pos + 8])
             segs.append((seg_s, seg_e))
             pos += 8
-        return cls(directive_code=code, scope_start=s_start,
-                   scope_end=s_end, segment_requests=segs)
+        return cls(
+            directive_code=code,
+            scope_start=s_start,
+            scope_end=s_end,
+            segment_requests=segs,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -280,6 +305,7 @@ class NAKPDU:
 @dataclass
 class CFDPTransaction:
     """State for a single CFDP file transaction."""
+
     transaction_id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     transaction_seq: int = 0
     source_entity: int = 0
@@ -331,7 +357,7 @@ def cfdp_checksum(data: bytes) -> int:
     # Pad to 4-byte boundary
     padded = data + b"\x00" * ((4 - len(data) % 4) % 4)
     for i in range(0, len(padded), 4):
-        word = struct.unpack("!I", padded[i:i + 4])[0]
+        word = struct.unpack("!I", padded[i : i + 4])[0]
         cksum = (cksum + word) & 0xFFFFFFFF
     return cksum
 
@@ -411,8 +437,10 @@ class CFDPSender:
         )
         self._transactions[tx.transaction_id] = tx
 
-        log.info(f"CFDP PUT {tx.transaction_id} | {path.name} "
-                 f"({file_size} bytes, {tx.segments_total} segments) -> entity {dst}")
+        log.info(
+            f"CFDP PUT {tx.transaction_id} | {path.name} "
+            f"({file_size} bytes, {tx.segments_total} segments) -> entity {dst}"
+        )
 
         # Phase 1: Metadata PDU
         tx.status = TransactionStatus.SENDING_METADATA
@@ -429,7 +457,7 @@ class CFDPSender:
         offset = 0
         seg_idx = 0
         while offset < file_size:
-            chunk = file_data[offset:offset + self.segment_size]
+            chunk = file_data[offset : offset + self.segment_size]
             fd = FileDataPDU(offset=offset, data=chunk)
             self._send_pdu(tx, PDUType.FILE_DATA, fd.pack())
             offset += len(chunk)
@@ -534,8 +562,8 @@ class CFDPReceiver:
             log.warning("PDU too short — discarding")
             return None
 
-        header = PDUHeader.unpack(raw[:PDUHeader.size()])
-        payload = raw[PDUHeader.size():]
+        header = PDUHeader.unpack(raw[: PDUHeader.size()])
+        payload = raw[PDUHeader.size() :]
         seq = header.transaction_seq
 
         if header.pdu_type == PDUType.FILE_DIRECTIVE:
@@ -565,8 +593,10 @@ class CFDPReceiver:
                 segments_total=(meta.file_size + SEGMENT_SIZE - 1) // SEGMENT_SIZE,
             )
             self._transactions[seq] = tx
-            log.info(f"CFDP RX metadata: {meta.source_filename} "
-                     f"({meta.file_size} bytes) from entity {header.source_entity_id}")
+            log.info(
+                f"CFDP RX metadata: {meta.source_filename} "
+                f"({meta.file_size} bytes) from entity {header.source_entity_id}"
+            )
             return tx.to_dict()
 
         elif code == DirectiveCode.EOF_PDU:
@@ -579,7 +609,10 @@ class CFDPReceiver:
             reassembled = self._reassemble(tx)
             actual_checksum = cfdp_checksum(reassembled)
 
-            if actual_checksum == eof.file_checksum and len(reassembled) == eof.file_size:
+            if (
+                actual_checksum == eof.file_checksum
+                and len(reassembled) == eof.file_size
+            ):
                 # Write to disk
                 out_path = self.output_dir / tx.destination_filename
                 out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -627,7 +660,7 @@ class CFDPReceiver:
         result = bytearray(tx.file_size)
         for offset, data in sorted(tx.receive_buffer.items()):
             end = min(offset + len(data), tx.file_size)
-            result[offset:end] = data[:end - offset]
+            result[offset:end] = data[: end - offset]
         return bytes(result)
 
     def _find_missing_segments(self, tx: CFDPTransaction) -> List[tuple]:

@@ -23,22 +23,25 @@ Usage:
     hw.close()
 """
 
-import numpy as np
 import logging
-import time
-import threading
 import platform
+import threading
+import time
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Tuple
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 log = logging.getLogger("satsdr.hardware")
 
 
 # ─── Device Profile Data Classes ─────────────────────────────────────────
 
+
 @dataclass
 class GainStage:
     """A single gain element in the receiver chain."""
+
     name: str = ""
     min_db: float = 0.0
     max_db: float = 0.0
@@ -62,6 +65,7 @@ class SDRDeviceProfile:
     gain stages, frequency coverage, ADC specifications, and USB
     transport characteristics.
     """
+
     device_name: str = "Unknown"
     driver: str = ""
     serial: str = ""
@@ -106,7 +110,10 @@ class SDRDeviceProfile:
             "driver": self.driver,
             "serial": self.serial,
             "firmware_version": self.firmware_version,
-            "freq_range_MHz": [self.freq_range_hz[0] / 1e6, self.freq_range_hz[1] / 1e6],
+            "freq_range_MHz": [
+                self.freq_range_hz[0] / 1e6,
+                self.freq_range_hz[1] / 1e6,
+            ],
             "sample_rate_range": list(self.sample_rate_range),
             "gain_stages": [g.to_dict() for g in self.gain_stages],
             "total_gain_range_dB": list(self.total_gain_range_db),
@@ -251,9 +258,11 @@ DEVICE_PROFILES = {
 
 # ─── Streaming State ─────────────────────────────────────────────────────
 
+
 @dataclass
 class StreamingState:
     """Tracks the state of background IQ streaming."""
+
     active: bool = False
     thread: Optional[threading.Thread] = None
     total_samples: int = 0
@@ -265,6 +274,7 @@ class StreamingState:
 
 
 # ─── Advanced Hardware Manager ───────────────────────────────────────────
+
 
 class HardwareManager:
     """
@@ -298,25 +308,30 @@ class HardwareManager:
     """
 
     DRIVER_MAP = {
-        "rtlsdr":    "rtlsdr",
-        "hackrf":    "hackrf",
-        "pluto":     "plutosdr",
+        "rtlsdr": "rtlsdr",
+        "hackrf": "hackrf",
+        "pluto": "plutosdr",
         "usrp_b200": "uhd",
         "usrp_b210": "uhd",
-        "limesdr":   "lime",
+        "limesdr": "lime",
     }
 
     MAX_GAIN = {
-        "rtlsdr":    49.6,
-        "hackrf":    62.0,
-        "pluto":     73.0,
+        "rtlsdr": 49.6,
+        "hackrf": 62.0,
+        "pluto": 73.0,
         "usrp_b200": 76.0,
         "usrp_b210": 76.0,
-        "limesdr":   73.0,
+        "limesdr": 73.0,
     }
 
-    def __init__(self, hardware: str = "rtlsdr", device_index: int = 0,
-                 ring_buffer_size: int = 2_000_000, driver: str = None):
+    def __init__(
+        self,
+        hardware: str = "rtlsdr",
+        device_index: int = 0,
+        ring_buffer_size: int = 2_000_000,
+        driver: str = None,
+    ):
         if driver is not None:
             hardware = driver
         self.hardware = hardware
@@ -368,6 +383,7 @@ class HardwareManager:
             profile = DEVICE_PROFILES[self.hardware]
             # Make a copy so we don't mutate the template
             import copy
+
             return copy.deepcopy(profile)
         else:
             return SDRDeviceProfile(device_name=self.hardware, driver=self._driver)
@@ -376,7 +392,7 @@ class HardwareManager:
         """Open SoapySDR device with enhanced error handling."""
         try:
             import SoapySDR
-            from SoapySDR import SOAPY_SDR_RX, SOAPY_SDR_CF32
+            from SoapySDR import SOAPY_SDR_CF32, SOAPY_SDR_RX
 
             args = {"driver": self._driver}
             if self.hardware == "rtlsdr":
@@ -418,7 +434,7 @@ class HardwareManager:
             if freq_ranges:
                 self.device_profile.freq_range_hz = (
                     freq_ranges[0].minimum(),
-                    freq_ranges[-1].maximum()
+                    freq_ranges[-1].maximum(),
                 )
 
             # Sample rate range
@@ -426,7 +442,7 @@ class HardwareManager:
             if rate_ranges:
                 self.device_profile.sample_rate_range = (
                     rate_ranges[0].minimum(),
-                    rate_ranges[-1].maximum()
+                    rate_ranges[-1].maximum(),
                 )
 
             # Gain range
@@ -434,7 +450,7 @@ class HardwareManager:
             if gain_range:
                 self.device_profile.total_gain_range_db = (
                     gain_range.minimum(),
-                    gain_range.maximum()
+                    gain_range.maximum(),
                 )
 
             # Antenna ports
@@ -451,20 +467,27 @@ class HardwareManager:
                 self.device_profile.gain_stages = []
                 for elem in gain_elements:
                     elem_range = self._sdr.getGainRange(self._SOAPY_SDR_RX, 0, elem)
-                    self.device_profile.gain_stages.append(GainStage(
-                        name=elem,
-                        min_db=elem_range.minimum(),
-                        max_db=elem_range.maximum(),
-                        step_db=elem_range.step() if elem_range.step() > 0 else 1.0,
-                    ))
+                    self.device_profile.gain_stages.append(
+                        GainStage(
+                            name=elem,
+                            min_db=elem_range.minimum(),
+                            max_db=elem_range.maximum(),
+                            step_db=elem_range.step() if elem_range.step() > 0 else 1.0,
+                        )
+                    )
 
             log.debug(f"Probed capabilities: {self.device_profile.device_name}")
 
         except Exception as e:
             log.debug(f"Capability probe partial failure: {e}")
 
-    def configure(self, frequency: float, sample_rate: float, gain: float = 30.0,
-                  antenna: str = None):
+    def configure(
+        self,
+        frequency: float,
+        sample_rate: float,
+        gain: float = 30.0,
+        antenna: str = None,
+    ):
         """
         Configure hardware parameters with validation.
 
@@ -534,7 +557,7 @@ class HardwareManager:
         if sr.ret > 0:
             # Track sequence for drop detection
             self._sequence_counter += sr.ret
-            return buf[:sr.ret]
+            return buf[: sr.ret]
         else:
             self._streaming.error_count += 1
             return buf
@@ -551,19 +574,23 @@ class HardwareManager:
         signal2 = 0.1 * np.exp(2j * np.pi * 3500 * t)
 
         # Additive white Gaussian noise
-        noise = (np.random.randn(n) + 1j * np.random.randn(n)).astype(np.complex64) * 0.02
+        noise = (np.random.randn(n) + 1j * np.random.randn(n)).astype(
+            np.complex64
+        ) * 0.02
 
         # Simulate DC offset (common in SDR hardware)
         dc_offset = 0.005 + 0.003j
 
         # Simulate IQ imbalance
-        amp_imbalance = 1.02   # 0.17 dB
-        phase_error = 0.03     # ~1.7 degrees
+        amp_imbalance = 1.02  # 0.17 dB
+        phase_error = 0.03  # ~1.7 degrees
 
         samples = carrier + signal2 + noise + dc_offset
         # Apply IQ imbalance
         i_ch = np.real(samples) * amp_imbalance
-        q_ch = np.imag(samples) * np.cos(phase_error) + np.real(samples) * np.sin(phase_error)
+        q_ch = np.imag(samples) * np.cos(phase_error) + np.real(samples) * np.sin(
+            phase_error
+        )
         samples = (i_ch + 1j * q_ch).astype(np.complex64)
 
         return samples
@@ -587,9 +614,8 @@ class HardwareManager:
 
         # Initialize ring buffer
         from .usb_transport import SharedRingBuffer
-        self._ring_buffer = SharedRingBuffer(
-            capacity_samples=self._ring_buffer_size
-        )
+
+        self._ring_buffer = SharedRingBuffer(capacity_samples=self._ring_buffer_size)
 
         self._streaming.active = True
         self._streaming.start_time = time.perf_counter()
@@ -656,7 +682,11 @@ class HardwareManager:
 
     def streaming_stats(self) -> dict:
         """Get current streaming statistics."""
-        elapsed = time.perf_counter() - self._streaming.start_time if self._streaming.start_time > 0 else 0
+        elapsed = (
+            time.perf_counter() - self._streaming.start_time
+            if self._streaming.start_time > 0
+            else 0
+        )
         rate = self._streaming.total_samples / elapsed if elapsed > 0 else 0
 
         result = {
@@ -677,9 +707,12 @@ class HardwareManager:
 
     # ── Auto Gain Calibration ──
 
-    def auto_calibrate_gain(self, target_power_dbfs: float = -20.0,
-                             n_steps: int = 10,
-                             n_samples: int = 65536) -> float:
+    def auto_calibrate_gain(
+        self,
+        target_power_dbfs: float = -20.0,
+        n_steps: int = 10,
+        n_samples: int = 65536,
+    ) -> float:
         """
         Automatically find the optimal gain setting.
 
@@ -709,10 +742,12 @@ class HardwareManager:
         gain_values = np.linspace(min_gain, max_gain, n_steps)
 
         best_gain = self.gain
-        best_distance = float('inf')
+        best_distance = float("inf")
         results = []
 
-        log.info(f"Auto-calibrating gain ({n_steps} steps, target={target_power_dbfs} dBFS)...")
+        log.info(
+            f"Auto-calibrating gain ({n_steps} steps, target={target_power_dbfs} dBFS)..."
+        )
 
         for test_gain in gain_values:
             try:
@@ -733,12 +768,14 @@ class HardwareManager:
 
                 distance = abs(power_dbfs - target_power_dbfs)
 
-                results.append({
-                    "gain_db": test_gain,
-                    "power_dbfs": power_dbfs,
-                    "peak": peak,
-                    "saturated": saturated,
-                })
+                results.append(
+                    {
+                        "gain_db": test_gain,
+                        "power_dbfs": power_dbfs,
+                        "peak": peak,
+                        "saturated": saturated,
+                    }
+                )
 
                 if not saturated and distance < best_distance:
                     best_distance = distance
@@ -754,7 +791,9 @@ class HardwareManager:
             gain=best_gain,
         )
 
-        log.info(f"Optimal gain: {best_gain:.1f} dB (distance={best_distance:.1f} dB from target)")
+        log.info(
+            f"Optimal gain: {best_gain:.1f} dB (distance={best_distance:.1f} dB from target)"
+        )
         return best_gain
 
     # ── Dropped Sample Detection ──
@@ -804,6 +843,7 @@ class HardwareManager:
         devices = []
         try:
             import SoapySDR
+
             results = SoapySDR.Device.enumerate()
             for r in results:
                 devices.append(dict(r))
@@ -815,13 +855,18 @@ class HardwareManager:
         return devices
 
     # ── Cleanup ──
- 
+
     def close(self):
         """Release all hardware resources."""
         if hasattr(self, "_streaming") and getattr(self._streaming, "active", False):
             self.stop_streaming()
 
-        if hasattr(self, "_sdr") and self._sdr and hasattr(self, "_rx_stream") and self._rx_stream:
+        if (
+            hasattr(self, "_sdr")
+            and self._sdr
+            and hasattr(self, "_rx_stream")
+            and self._rx_stream
+        ):
             try:
                 self._sdr.deactivateStream(self._rx_stream)
                 self._sdr.closeStream(self._rx_stream)

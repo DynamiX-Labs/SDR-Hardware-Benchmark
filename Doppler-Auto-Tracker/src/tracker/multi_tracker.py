@@ -9,15 +9,16 @@ Inspired by:
 DynamiX Labs
 """
 
-import time
 import logging
 import threading
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Callable
+import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Callable, Dict, List, Optional
+
+from src.tle.fetcher import TLEFetcher
 
 from .doppler import DopplerCalculator
-from src.tle.fetcher import TLEFetcher
 from .predict import PassPredictor
 
 log = logging.getLogger("tracker.multi")
@@ -58,22 +59,24 @@ class MultiTracker:
         self.lat = lat
         self.lon = lon
         self.alt = alt
-        
+
         self.targets: Dict[str, TrackTarget] = {}
         self.fetcher = TLEFetcher()
         self.predictor = PassPredictor(lat, lon, alt)
-        
+
         self.schedule: List[ActivePass] = []
         self.current_pass: Optional[ActivePass] = None
-        
+
         # Callbacks
         self.on_aos: Optional[Callable[[ActivePass], None]] = None
         self.on_los: Optional[Callable[[ActivePass], None]] = None
-        self.on_update: Optional[Callable[[ActivePass, float, float, float, float], None]] = None
-        
+        self.on_update: Optional[
+            Callable[[ActivePass, float, float, float, float], None]
+        ] = None
+
         self._running = False
         self._thread: Optional[threading.Thread] = None
-        
+
         # Initial TLE load
         for group in ["amateur", "weather", "cubesat"]:
             try:
@@ -97,31 +100,32 @@ class MultiTracker:
     def update_schedule(self, hours_ahead: float = 12.0):
         """Recompute passes for all targets and resolve conflicts."""
         all_passes = []
-        
+
         for name, target in self.targets.items():
             tle = self.fetcher.get_satellite(name)
             if not tle:
                 log.warning(f"No TLE found for {name}, cannot schedule passes")
                 continue
-                
+
             passes = self.predictor.predict(tle, hours_ahead=hours_ahead)
-            
+
             # Convert raw passes to ActivePass objects
             for p in passes:
-                calc = DopplerCalculator(tle["line1"], tle["line2"], 
-                                         self.lat, self.lon, self.alt)
+                calc = DopplerCalculator(
+                    tle["line1"], tle["line2"], self.lat, self.lon, self.alt
+                )
                 active = ActivePass(
                     target=target,
                     doppler_calc=calc,
                     aos_time=p["aos"],
                     los_time=p["los"],
-                    max_el=p["max_el"]
+                    max_el=p["max_el"],
                 )
                 all_passes.append(active)
-                
+
         # Sort by AOS time
         all_passes.sort(key=lambda x: x.aos_time)
-        
+
         # Conflict resolution (priority-based)
         resolved = []
         for p in all_passes:
@@ -137,20 +141,24 @@ class MultiTracker:
                         # Old pass wins, skip new
                         conflict = True
                     break
-                    
+
             if not conflict:
                 resolved.append(p)
-                
+
         self.schedule = resolved
-        log.info(f"Schedule updated: {len(self.schedule)} passes over next {hours_ahead}h")
+        log.info(
+            f"Schedule updated: {len(self.schedule)} passes over next {hours_ahead}h"
+        )
         for i, p in enumerate(self.schedule[:5]):
-            log.debug(f"  [{i}] {p.target.satellite_name} @ {p.aos_time.strftime('%H:%M:%S')} (El: {p.max_el:.1f}°)")
+            log.debug(
+                f"  [{i}] {p.target.satellite_name} @ {p.aos_time.strftime('%H:%M:%S')} (El: {p.max_el:.1f}°)"
+            )
 
     def start(self):
         """Start the background tracking thread."""
         if self._running:
             return
-            
+
         self._running = True
         self._thread = threading.Thread(target=self._tracking_loop, daemon=True)
         self._thread.start()
@@ -167,7 +175,7 @@ class MultiTracker:
         """Background loop to manage active passes and emit updates."""
         while self._running:
             now = datetime.now(timezone.utc)
-            
+
             # Check if current pass is over
             if self.current_pass:
                 if now > self.current_pass.los_time:
@@ -182,7 +190,7 @@ class MultiTracker:
                 else:
                     # Emit real-time update
                     self._emit_update(self.current_pass, now)
-            
+
             # Check for new pass starting
             if not self.current_pass and self.schedule:
                 next_pass = self.schedule[0]
@@ -190,25 +198,27 @@ class MultiTracker:
                 if (next_pass.aos_time - now).total_seconds() < 30.0:
                     self.current_pass = self.schedule.pop(0)
                     self.current_pass.is_active = True
-                    log.info(f"AOS imminent for {self.current_pass.target.satellite_name}")
+                    log.info(
+                        f"AOS imminent for {self.current_pass.target.satellite_name}"
+                    )
                     if self.on_aos:
                         try:
                             self.on_aos(self.current_pass)
                         except Exception as e:
                             log.error(f"Error in on_aos callback: {e}")
-            
+
             # Check if schedule needs refresh (if empty or last pass is past)
             if not self.schedule and not self.current_pass:
                 # Refresh every hour if idle
                 self.update_schedule()
-                
+
             time.sleep(0.5)
 
     def _emit_update(self, active_pass: ActivePass, now: datetime):
         """Calculate and emit real-time Az/El/Doppler."""
         if not self.on_update:
             return
-            
+
         try:
             az, el, rng_km = active_pass.doppler_calc.get_azel(now)
             freq = active_pass.doppler_calc.corrected_frequency(

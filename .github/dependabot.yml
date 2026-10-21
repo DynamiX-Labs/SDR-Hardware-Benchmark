@@ -4,7 +4,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     groups:
       github-actions:
         patterns:
@@ -14,7 +14,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/CubeSat-Telemetry-Decoder"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     reviewers:
       - "DynamiX-Labs-Admin"
     labels:
@@ -28,7 +28,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/SatSDR-Universal"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     reviewers:
       - "DynamiX-Labs-Admin"
     labels:
@@ -42,7 +42,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/Doppler-Auto-Tracker"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     reviewers:
       - "DynamiX-Labs-Admin"
     labels:
@@ -56,7 +56,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/SDR-Hardware-Benchmark"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     reviewers:
       - "DynamiX-Labs-Admin"
     labels:
@@ -71,7 +71,7 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     groups:
       docker-dependencies:
         patterns:

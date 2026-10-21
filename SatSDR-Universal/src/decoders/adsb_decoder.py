@@ -4,9 +4,11 @@ Decodes 1090 MHz aviation transponder signals (Mode-S Extended Squitter).
 DynamiX Labs
 """
 
-import numpy as np
-from datetime import datetime
 import json
+from datetime import datetime
+
+import numpy as np
+
 from .base_decoder import BaseDecoder
 
 
@@ -32,9 +34,9 @@ class ADSBDecoder(BaseDecoder):
 
     # DF type → description
     DF_TYPES = {
-        0:  "Short ACAS",
-        4:  "Surveillance Altitude",
-        5:  "Surveillance Identity",
+        0: "Short ACAS",
+        4: "Surveillance Altitude",
+        5: "Surveillance Identity",
         11: "All-Call Reply",
         17: "ADS-B (Extended Squitter)",
         18: "TIS-B",
@@ -67,7 +69,7 @@ class ADSBDecoder(BaseDecoder):
             if edge + 120 * sps >= len(mag):
                 break
             # Check preamble pattern
-            window = mag[edge:edge + 10 * sps]
+            window = mag[edge : edge + 10 * sps]
             if len(window) < 10 * sps:
                 continue
             # Extract 112-bit payload (Long frame)
@@ -75,8 +77,8 @@ class ADSBDecoder(BaseDecoder):
             for i in range(112):
                 idx = edge + (8 + i * 2) * sps  # after 8μs preamble
                 if idx + sps < len(mag):
-                    chip0 = mag[idx:idx + sps].mean()
-                    chip1 = mag[idx + sps:idx + 2 * sps].mean()
+                    chip0 = mag[idx : idx + sps].mean()
+                    chip1 = mag[idx + sps : idx + 2 * sps].mean()
                     bits.append(1 if chip0 > chip1 else 0)
             if len(bits) == 112:
                 messages.append(bits)
@@ -84,7 +86,7 @@ class ADSBDecoder(BaseDecoder):
 
     def _bits_to_int(self, bits: list, start: int, length: int) -> int:
         val = 0
-        for b in bits[start:start + length]:
+        for b in bits[start : start + length]:
             val = (val << 1) | b
         return val
 
@@ -107,7 +109,9 @@ class ADSBDecoder(BaseDecoder):
 
             # Aircraft ID (TC 1–4)
             if 1 <= type_code <= 4:
-                charset = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ#####_###############0123456789######"
+                charset = (
+                    "#ABCDEFGHIJKLMNOPQRSTUVWXYZ#####_###############0123456789######"
+                )
                 callsign = ""
                 for i in range(8):
                     idx = self._bits_to_int(bits, 40 + i * 6, 6)
@@ -118,14 +122,14 @@ class ADSBDecoder(BaseDecoder):
             elif 9 <= type_code <= 18:
                 altitude_raw = self._bits_to_int(bits, 40, 13)
                 if altitude_raw:
-                    altitude = (altitude_raw - 1000)  # feet MSL (simplified)
+                    altitude = altitude_raw - 1000  # feet MSL (simplified)
                     msg["altitude_ft"] = altitude
 
             # Airborne velocity (TC 19)
             elif type_code == 19:
                 vew = self._bits_to_int(bits, 46, 10) - 512  # East-West velocity
                 vns = self._bits_to_int(bits, 56, 10) - 512  # North-South velocity
-                speed = (vew ** 2 + vns ** 2) ** 0.5
+                speed = (vew**2 + vns**2) ** 0.5
                 msg["speed_kts"] = round(speed)
                 msg["vew_kts"] = vew
                 msg["vns_kts"] = vns
@@ -167,14 +171,13 @@ class ADSBDecoder(BaseDecoder):
 
     def get_aircraft_table(self) -> list:
         """Return current aircraft state table."""
-        return [
-            {"icao": k, **v}
-            for k, v in sorted(self.aircraft.items())
-        ]
+        return [{"icao": k, **v} for k, v in sorted(self.aircraft.items())]
 
     def format_output(self, decoded: dict) -> str:
         msgs = decoded.get("messages", [])
-        lines = [f"[ADS-B] {decoded['timestamp']} | {decoded['aircraft_count']} aircraft | {decoded['total_messages']} msgs"]
+        lines = [
+            f"[ADS-B] {decoded['timestamp']} | {decoded['aircraft_count']} aircraft | {decoded['total_messages']} msgs"
+        ]
         for m in msgs[:5]:
             cs = m.get("callsign", "?????")
             alt = m.get("altitude_ft", "")

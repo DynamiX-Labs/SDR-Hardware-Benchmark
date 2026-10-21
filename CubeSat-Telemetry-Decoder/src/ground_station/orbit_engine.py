@@ -4,12 +4,14 @@ Calculates real-time satellite positions and Doppler shifts using SGP4.
 Includes a low-pass filter for closed-loop Doppler smoothing.
 """
 
-from sgp4.api import Satrec, WGS84
-import logging
-from typing import Tuple, Optional
 import datetime
+import logging
+from typing import Optional, Tuple
+
+from sgp4.api import WGS84, Satrec
 
 log = logging.getLogger("cubesat.orbit")
+
 
 class OrbitEngine:
     SPEED_OF_LIGHT = 299792458.0  # m/s
@@ -24,7 +26,7 @@ class OrbitEngine:
         self.gs_lon = lon
         self.gs_alt = alt_m
         self.satrec = None
-        
+
         # Doppler Control Law (EMA)
         self.alpha = alpha
         self.last_doppler_freq = None
@@ -41,9 +43,11 @@ class OrbitEngine:
             log.error(f"Failed to load TLE: {e}")
             return False
 
-    def get_smoothed_doppler(self, dt: datetime.datetime, center_freq_hz: float) -> Optional[float]:
+    def get_smoothed_doppler(
+        self, dt: datetime.datetime, center_freq_hz: float
+    ) -> Optional[float]:
         """
-        Calculate the expected Doppler shifted frequency and apply an EMA 
+        Calculate the expected Doppler shifted frequency and apply an EMA
         low-pass filter to prevent SDR tuning oscillation and overshoot.
         """
         if not self.satrec:
@@ -51,15 +55,22 @@ class OrbitEngine:
             return None
 
         # SGP4 expects date components
-        e, r, v = self.satrec.sgp4(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second + dt.microsecond / 1e6)
-        
+        e, r, v = self.satrec.sgp4(
+            dt.year,
+            dt.month,
+            dt.day,
+            dt.hour,
+            dt.minute,
+            dt.second + dt.microsecond / 1e6,
+        )
+
         if e != 0:
             log.error(f"SGP4 propagation error: code {e}")
             return None
 
         # Placeholder for actual relative velocity calculation
         # Let's assume a dummy relative velocity (v_rel in m/s) based on z-axis velocity
-        v_rel_m_s = v[2] * 1000.0  
+        v_rel_m_s = v[2] * 1000.0
 
         # Raw target Doppler calculation
         doppler_shift = center_freq_hz * (-v_rel_m_s / self.SPEED_OF_LIGHT)
@@ -69,6 +80,8 @@ class OrbitEngine:
         if self.last_doppler_freq is None:
             self.last_doppler_freq = raw_target_freq
         else:
-            self.last_doppler_freq = self.last_doppler_freq + self.alpha * (raw_target_freq - self.last_doppler_freq)
+            self.last_doppler_freq = self.last_doppler_freq + self.alpha * (
+                raw_target_freq - self.last_doppler_freq
+            )
 
         return self.last_doppler_freq

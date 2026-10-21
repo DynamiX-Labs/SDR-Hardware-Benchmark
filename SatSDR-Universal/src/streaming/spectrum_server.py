@@ -21,10 +21,10 @@ Usage:
 
 import asyncio
 import json
-import time
 import logging
-from typing import Set, Dict, Optional, Any
+import time
 from dataclasses import dataclass, field
+from typing import Any, Dict, Optional, Set
 
 import numpy as np
 
@@ -34,11 +34,12 @@ log = logging.getLogger("satsdr.stream.server")
 try:
     import websockets  # type: ignore[import-untyped]
     from websockets.server import serve as ws_serve  # type: ignore
+
     _WS_AVAILABLE = True
 except ImportError:
     _WS_AVAILABLE = False
 
-from .stream_protocol import SpectrumFrame, pack_frame, frame_to_json
+from .stream_protocol import SpectrumFrame, frame_to_json, pack_frame
 
 
 # ---------------------------------------------------------------------------
@@ -48,12 +49,12 @@ from .stream_protocol import SpectrumFrame, pack_frame, frame_to_json
 class ClientSession:
     """Tracks a single connected WebSocket client."""
 
-    ws: Any                              # websockets.WebSocketServerProtocol
+    ws: Any  # websockets.WebSocketServerProtocol
     client_id: str = ""
     subscriptions: Set[str] = field(default_factory=set)
     connected_at: float = 0.0
     frames_sent: int = 0
-    binary_mode: bool = True             # False = JSON text mode
+    binary_mode: bool = True  # False = JSON text mode
     authenticated: bool = False
 
 
@@ -145,7 +146,7 @@ class SpectrumServer:
             self.port,
             ping_interval=20,
             ping_timeout=10,
-            max_size=2 ** 22,  # 4 MB max message
+            max_size=2**22,  # 4 MB max message
             process_request=self._http_handler,
         ):
             # Start the background spectrum producer
@@ -181,23 +182,27 @@ class SpectrumServer:
     # ------------------------------------------------------------------
     async def _http_handler(self, path, request_headers):
         """Handle non-WebSocket HTTP requests (health check)."""
-        if hasattr(path, 'path'):
+        if hasattr(path, "path"):
             # websockets >= 12.0 passes a Request object
             url_path = path.path
         else:
             url_path = path
 
         if url_path == "/api/health":
-            body = json.dumps({
-                "status": "ok",
-                "service": "SatSDR Spectrum Server",
-                "uptime_s": round(time.time() - self._start_time, 1),
-                "clients": len(self._clients),
-            }).encode()
+            body = json.dumps(
+                {
+                    "status": "ok",
+                    "service": "SatSDR Spectrum Server",
+                    "uptime_s": round(time.time() - self._start_time, 1),
+                    "clients": len(self._clients),
+                }
+            ).encode()
             return (
                 200,
-                [("Content-Type", "application/json"),
-                 ("Access-Control-Allow-Origin", "*")],
+                [
+                    ("Content-Type", "application/json"),
+                    ("Access-Control-Allow-Origin", "*"),
+                ],
                 body,
             )
         # Return None to proceed with WebSocket upgrade
@@ -236,12 +241,16 @@ class SpectrumServer:
         log.info(f"Client connected: {client_id} ({len(self._clients)} total)")
 
         # Send welcome
-        await ws.send(json.dumps({
-            "type": "welcome",
-            "server": "SatSDR Spectrum Server",
-            "channels": list(self.CHANNELS),
-            "protocol_version": 1,
-        }))
+        await ws.send(
+            json.dumps(
+                {
+                    "type": "welcome",
+                    "server": "SatSDR Spectrum Server",
+                    "channels": list(self.CHANNELS),
+                    "protocol_version": 1,
+                }
+            )
+        )
 
         try:
             async for message in ws:
@@ -266,43 +275,65 @@ class SpectrumServer:
             for ch in channels:
                 if ch in self.CHANNELS:
                     session.subscriptions.add(ch)
-            await session.ws.send(json.dumps({
-                "type": "subscribed",
-                "channels": list(session.subscriptions),
-            }))
-            log.debug(f"Client {session.client_id} subscribed to {session.subscriptions}")
+            await session.ws.send(
+                json.dumps(
+                    {
+                        "type": "subscribed",
+                        "channels": list(session.subscriptions),
+                    }
+                )
+            )
+            log.debug(
+                f"Client {session.client_id} subscribed to {session.subscriptions}"
+            )
 
         elif cmd == "unsubscribe":
             channels = msg.get("channels", [])
             for ch in channels:
                 session.subscriptions.discard(ch)
-            await session.ws.send(json.dumps({
-                "type": "unsubscribed",
-                "channels": list(session.subscriptions),
-            }))
+            await session.ws.send(
+                json.dumps(
+                    {
+                        "type": "unsubscribed",
+                        "channels": list(session.subscriptions),
+                    }
+                )
+            )
 
         elif cmd == "set_mode":
             mode = msg.get("mode", "binary")
-            session.binary_mode = (mode == "binary")
-            await session.ws.send(json.dumps({
-                "type": "mode_set",
-                "mode": "binary" if session.binary_mode else "json",
-            }))
+            session.binary_mode = mode == "binary"
+            await session.ws.send(
+                json.dumps(
+                    {
+                        "type": "mode_set",
+                        "mode": "binary" if session.binary_mode else "json",
+                    }
+                )
+            )
 
         elif cmd == "set_fft_size":
             size = msg.get("fft_size", 4096)
             if size in (256, 512, 1024, 2048, 4096, 8192, 16384):
                 self.fft_size = size
-                await session.ws.send(json.dumps({
-                    "type": "config_updated",
-                    "fft_size": self.fft_size,
-                }))
+                await session.ws.send(
+                    json.dumps(
+                        {
+                            "type": "config_updated",
+                            "fft_size": self.fft_size,
+                        }
+                    )
+                )
 
         elif cmd == "get_status":
-            await session.ws.send(json.dumps({
-                "type": "status",
-                **self.get_status(),
-            }))
+            await session.ws.send(
+                json.dumps(
+                    {
+                        "type": "status",
+                        **self.get_status(),
+                    }
+                )
+            )
 
     # ------------------------------------------------------------------
     # Spectrum producer loop
@@ -326,7 +357,9 @@ class SpectrumServer:
                 n = self.fft_size * 4
                 t = np.arange(n, dtype=np.float32) / 250_000
                 carrier = np.exp(2j * np.pi * 25_000 * t).astype(np.complex64)
-                noise = (np.random.randn(n) + 1j * np.random.randn(n)).astype(np.complex64) * 0.3
+                noise = (np.random.randn(n) + 1j * np.random.randn(n)).astype(
+                    np.complex64
+                ) * 0.3
                 samples = carrier + noise
 
             # Compute PSD
@@ -357,16 +390,24 @@ class SpectrumServer:
             )
         elif self.engine is not None:
             from scipy import signal as sig
+
             freqs, psd = sig.welch(
-                samples, fs=sample_rate, nperseg=self.fft_size,
-                return_onesided=False, scaling="density",
+                samples,
+                fs=sample_rate,
+                nperseg=self.fft_size,
+                return_onesided=False,
+                scaling="density",
             )
             psd_db = 10 * np.log10(np.fft.fftshift(psd) + 1e-20)
         else:
             from scipy import signal as sig
+
             freqs, psd = sig.welch(
-                samples, fs=sample_rate, nperseg=self.fft_size,
-                return_onesided=False, scaling="density",
+                samples,
+                fs=sample_rate,
+                nperseg=self.fft_size,
+                return_onesided=False,
+                scaling="density",
             )
             psd_db = 10 * np.log10(np.fft.fftshift(psd) + 1e-20)
 
@@ -451,10 +492,7 @@ class SpectrumServer:
 
     async def _send_to_channel(self, channel: str, frame: SpectrumFrame):
         """Send a frame to all clients subscribed to the given channel."""
-        subscribers = [
-            s for s in self._clients.values()
-            if channel in s.subscriptions
-        ]
+        subscribers = [s for s in self._clients.values() if channel in s.subscriptions]
         if not subscribers:
             return
 

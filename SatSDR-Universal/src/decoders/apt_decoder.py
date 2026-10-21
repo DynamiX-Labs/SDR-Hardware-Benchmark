@@ -4,11 +4,13 @@ Decodes 137 MHz weather satellite images.
 DynamiX Labs
 """
 
-import numpy as np
-from scipy.signal import butter, lfilter, resample_poly
-from PIL import Image
-from datetime import datetime
 import json
+from datetime import datetime
+
+import numpy as np
+from PIL import Image
+from scipy.signal import butter, lfilter, resample_poly
+
 from .base_decoder import BaseDecoder
 
 
@@ -26,11 +28,11 @@ class APTDecoder(BaseDecoder):
     FREQUENCY = 137_500_000  # Default; override per satellite
     MODULATION = "WBFM"
     BAUDRATE = 4160
-    BANDWIDTH = 40_000       # 40 kHz RF bandwidth
+    BANDWIDTH = 40_000  # 40 kHz RF bandwidth
 
-    APT_LINE_RATE = 2        # lines per second
-    APT_SUBCARRIER = 2400    # Hz
-    APT_LINE_WIDTH = 2080    # samples per line at 4160 SPS
+    APT_LINE_RATE = 2  # lines per second
+    APT_SUBCARRIER = 2400  # Hz
+    APT_LINE_WIDTH = 2080  # samples per line at 4160 SPS
 
     SATELLITE_FREQS = {
         "NOAA-15": 137.620e6,
@@ -71,7 +73,7 @@ class APTDecoder(BaseDecoder):
         n_lines = (len(image_data) - line_start) // samples_per_line
         if n_lines < 10:
             return np.array([])
-        return image_data[line_start:line_start + n_lines * samples_per_line].reshape(
+        return image_data[line_start : line_start + n_lines * samples_per_line].reshape(
             n_lines, samples_per_line
         )
 
@@ -87,6 +89,7 @@ class APTDecoder(BaseDecoder):
         in_rate = int(self.sample_rate)
         out_rate = self.output_sample_rate
         from math import gcd
+
         g = gcd(in_rate, out_rate)
         audio_resampled = resample_poly(audio, out_rate // g, in_rate // g)
 
@@ -96,7 +99,9 @@ class APTDecoder(BaseDecoder):
         # 4. Normalize 0–255
         img_min, img_max = image_signal.min(), image_signal.max()
         if img_max > img_min:
-            normalized = ((image_signal - img_min) / (img_max - img_min) * 255).astype(np.uint8)
+            normalized = ((image_signal - img_min) / (img_max - img_min) * 255).astype(
+                np.uint8
+            )
         else:
             return {}
 
@@ -121,7 +126,10 @@ class APTDecoder(BaseDecoder):
         arr = np.array(self.lines, dtype=np.uint8)
         img = Image.fromarray(arr, mode="L")
         if filename is None:
-            filename = self.output_dir / f"apt_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.png"
+            filename = (
+                self.output_dir
+                / f"apt_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.png"
+            )
         img.save(filename)
         self.log.info(f"Saved APT image: {filename} ({arr.shape[0]} lines)")
         return str(filename)

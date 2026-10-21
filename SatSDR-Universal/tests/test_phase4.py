@@ -2,9 +2,15 @@
 Tests for CCSDS CFDP and Federation modules.
 DynamiX Labs | Phase 4
 """
-import pytest
-import sys, os, time, tempfile, struct
+
+import os
+import struct
+import sys
+import tempfile
+import time
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -15,8 +21,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 class TestCFDPHeader:
     def test_header_pack_unpack(self):
         from protocols.cfdp import PDUHeader, PDUType, TransmissionMode
-        h = PDUHeader(pdu_type=PDUType.FILE_DATA, source_entity_id=1,
-                      transaction_seq=42, destination_entity_id=2, data_length=1024)
+
+        h = PDUHeader(
+            pdu_type=PDUType.FILE_DATA,
+            source_entity_id=1,
+            transaction_seq=42,
+            destination_entity_id=2,
+            data_length=1024,
+        )
         packed = h.pack()
         restored = PDUHeader.unpack(packed)
         assert restored.source_entity_id == 1
@@ -26,14 +38,19 @@ class TestCFDPHeader:
 
     def test_header_size(self):
         from protocols.cfdp import PDUHeader
+
         assert PDUHeader.size() == 7
 
 
 class TestCFDPMetadata:
     def test_metadata_roundtrip(self):
         from protocols.cfdp import MetadataPDU
-        m = MetadataPDU(file_size=4096, source_filename="test.bin",
-                        destination_filename="/data/test.bin")
+
+        m = MetadataPDU(
+            file_size=4096,
+            source_filename="test.bin",
+            destination_filename="/data/test.bin",
+        )
         packed = m.pack()
         restored = MetadataPDU.unpack(packed)
         assert restored.file_size == 4096
@@ -44,8 +61,12 @@ class TestCFDPMetadata:
 class TestCFDPEOF:
     def test_eof_roundtrip(self):
         from protocols.cfdp import EOFPDU, ConditionCode
-        e = EOFPDU(condition_code=ConditionCode.NO_ERROR,
-                   file_checksum=0xDEADBEEF, file_size=2048)
+
+        e = EOFPDU(
+            condition_code=ConditionCode.NO_ERROR,
+            file_checksum=0xDEADBEEF,
+            file_size=2048,
+        )
         packed = e.pack()
         restored = EOFPDU.unpack(packed)
         assert restored.file_checksum == 0xDEADBEEF
@@ -56,8 +77,10 @@ class TestCFDPEOF:
 class TestCFDPNAK:
     def test_nak_roundtrip(self):
         from protocols.cfdp import NAKPDU
-        n = NAKPDU(scope_start=0, scope_end=4096,
-                   segment_requests=[(0, 1024), (2048, 3072)])
+
+        n = NAKPDU(
+            scope_start=0, scope_end=4096, segment_requests=[(0, 1024), (2048, 3072)]
+        )
         packed = n.pack()
         restored = NAKPDU.unpack(packed)
         assert restored.scope_start == 0
@@ -69,6 +92,7 @@ class TestCFDPNAK:
 class TestCFDPChecksum:
     def test_checksum_deterministic(self):
         from protocols.cfdp import cfdp_checksum
+
         data = b"Hello CCSDS CFDP!"
         c1 = cfdp_checksum(data)
         c2 = cfdp_checksum(data)
@@ -76,6 +100,7 @@ class TestCFDPChecksum:
 
     def test_checksum_different_data(self):
         from protocols.cfdp import cfdp_checksum
+
         assert cfdp_checksum(b"aaa") != cfdp_checksum(b"bbb")
 
 
@@ -85,7 +110,7 @@ class TestCFDPChecksum:
 class TestCFDPSenderReceiver:
     def test_class1_file_transfer(self, tmp_path):
         """Class 1 (unreliable) file transfer through sender→receiver."""
-        from protocols.cfdp import CFDPSender, CFDPReceiver, TransmissionMode
+        from protocols.cfdp import CFDPReceiver, CFDPSender, TransmissionMode
 
         # Create test file
         test_file = tmp_path / "payload.bin"
@@ -97,7 +122,8 @@ class TestCFDPSenderReceiver:
 
         # Wire sender to buffer
         sender = CFDPSender(
-            entity_id=1, peer_id=2,
+            entity_id=1,
+            peer_id=2,
             transport=lambda pdu: pdu_buffer.append(pdu),
             segment_size=512,
             transmission_mode=TransmissionMode.UNACKNOWLEDGED,
@@ -120,6 +146,7 @@ class TestCFDPSenderReceiver:
 
     def test_sender_transaction_tracking(self, tmp_path):
         from protocols.cfdp import CFDPSender, TransmissionMode
+
         test_file = tmp_path / "small.bin"
         test_file.write_bytes(b"test data 12345")
 
@@ -133,12 +160,14 @@ class TestCFDPSenderReceiver:
 
     def test_sender_file_not_found(self):
         from protocols.cfdp import CFDPSender
+
         sender = CFDPSender()
         with pytest.raises(FileNotFoundError):
             sender.put("/nonexistent/file.bin")
 
     def test_list_transactions(self, tmp_path):
         from protocols.cfdp import CFDPSender
+
         test_file = tmp_path / "data.bin"
         test_file.write_bytes(b"x" * 100)
         sender = CFDPSender()
@@ -150,9 +179,12 @@ class TestCFDPSenderReceiver:
 class TestCFDPTransaction:
     def test_transaction_to_dict(self):
         from protocols.cfdp import CFDPTransaction, TransactionStatus
+
         tx = CFDPTransaction(
-            source_entity=1, destination_entity=2,
-            file_size=4096, segments_total=4,
+            source_entity=1,
+            destination_entity=2,
+            file_size=4096,
+            segments_total=4,
             status=TransactionStatus.ACTIVE,
         )
         d = tx.to_dict()
@@ -167,6 +199,7 @@ class TestCFDPTransaction:
 class TestFederationModels:
     def test_station_info(self):
         from federation import StationInfo
+
         s = StationInfo(station_id="GS-TEST", latitude=13.08, longitude=80.27)
         d = s.to_dict()
         assert d["station_id"] == "GS-TEST"
@@ -175,9 +208,12 @@ class TestFederationModels:
 
     def test_telemetry_share(self):
         from federation import TelemetryShare
+
         t = TelemetryShare(
-            station_id="GS-1", satellite="NOAA-15",
-            decoder="apt", payload={"temp": 22.5},
+            station_id="GS-1",
+            satellite="NOAA-15",
+            decoder="apt",
+            payload={"temp": 22.5},
         )
         d = t.to_dict()
         assert d["satellite"] == "NOAA-15"
@@ -186,9 +222,12 @@ class TestFederationModels:
 
     def test_pass_coordination(self):
         from federation import PassCoordination
+
         p = PassCoordination(
-            satellite="ISS", requesting_station="GS-1",
-            aos_utc="2026-05-07T12:00:00Z", max_elevation_deg=45.0,
+            satellite="ISS",
+            requesting_station="GS-1",
+            aos_utc="2026-05-07T12:00:00Z",
+            max_elevation_deg=45.0,
         )
         assert p.status == "available"
         d = p.to_dict()
@@ -199,6 +238,7 @@ class TestFederationHub:
     def test_hub_creation(self):
         try:
             from federation import FederationHub
+
             hub = FederationHub()
             assert hub.bind_addr == "tcp://*:6000"
             assert len(hub.get_stations()) == 0
@@ -210,8 +250,11 @@ class TestFederationNode:
     def test_node_creation(self):
         try:
             from federation import FederationNode
+
             node = FederationNode(
-                station_id="GS-TEST", lat=13.08, lon=80.27,
+                station_id="GS-TEST",
+                lat=13.08,
+                lon=80.27,
                 capabilities=["apt", "adsb"],
             )
             assert node.station_id == "GS-TEST"
@@ -222,6 +265,7 @@ class TestFederationNode:
     def test_event_callback_registration(self):
         try:
             from federation import FederationNode
+
             node = FederationNode(station_id="GS-TEST")
             calls = []
             node.on_event("telemetry.new", lambda d: calls.append(d))

@@ -1,24 +1,28 @@
-import numpy as np
-import scipy.signal as signal
-from .base_decoder import BaseDecoder
-import struct
 import json
 import logging
+import struct
+
+import numpy as np
+import scipy.signal as signal
+
+from .base_decoder import BaseDecoder
+
 
 class LRPTDecoder(BaseDecoder):
     """
     Decodes METEOR-M Low Resolution Picture Transmission (LRPT)
     Modulation: QPSK at 72,000 symbols/sec
     """
+
     NAME = "lrpt"
     FREQUENCY = 137.100e6
     MODULATION = "qpsk"
     BAUDRATE = 72000
-    
+
     # METEOR-M specific constants
     SYNC_WORD = 0x1ACFFC1D
     FRAME_SIZE_BITS = 16384
-    
+
     def __init__(self, sample_rate=250000):
         super().__init__()
         self.sample_rate = sample_rate
@@ -41,26 +45,26 @@ class LRPTDecoder(BaseDecoder):
 
     def decode(self, iq_samples: np.ndarray) -> dict:
         self.logger.info("Starting LRPT Demodulation")
-        
+
         # 1. RRC Filter (Root Raised Cosine)
         num_taps = 65
         beta = 0.6
         # skipping actual filter gen for brevity
-        
+
         # 2. Carrier Recovery
         locked_samples = self.costas_loop(iq_samples)
-        
+
         # 3. Symbol Timing Recovery
         symbols = self.gardner_timing_recovery(locked_samples)
-        
+
         # 4. Soft Decisions to Hard Decisions
         bits = np.zeros(len(symbols) * 2, dtype=np.uint8)
         bits[0::2] = (np.real(symbols) > 0).astype(np.uint8)
         bits[1::2] = (np.imag(symbols) > 0).astype(np.uint8)
-        
+
         # 5. Viterbi Decoding & Reed-Solomon Error Correction
         self.logger.info(f"Demodulated {len(bits)} bits, starting Viterbi FEC")
-        
+
         # Mock payload return
         return {
             "satellite": "METEOR-M2",
@@ -68,7 +72,7 @@ class LRPTDecoder(BaseDecoder):
             "viterbi_ber": 0.0014,
             "rs_corrected_errors": 45,
             "frames_decoded": len(bits) // self.FRAME_SIZE_BITS,
-            "output_file": "results/meteor_baseband.cadu"
+            "output_file": "results/meteor_baseband.cadu",
         }
 
     def format_output(self, decoded: dict) -> str:

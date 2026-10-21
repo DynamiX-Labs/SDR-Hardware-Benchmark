@@ -8,12 +8,12 @@ DynamiX Labs
 
 import json
 import logging
-from typing import List, Dict, Optional, TYPE_CHECKING
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from .dsp_benchmark import DSPBenchmarkReport, BenchmarkResult
+    from .dsp_benchmark import BenchmarkResult, DSPBenchmarkReport
     from .system_profiler import SystemProfile
 
 log = logging.getLogger("benchmark.report")
@@ -70,12 +70,14 @@ def overall_readiness(results: list) -> str:
 
 # ── Report Generators ────────────────────────────────────────────────────
 
+
 class ReportGenerator:
     """Generates benchmark reports in multiple formats."""
 
     @staticmethod
-    def terminal_report(report: "DSPBenchmarkReport",
-                        profile: Optional["SystemProfile"] = None) -> str:
+    def terminal_report(
+        report: "DSPBenchmarkReport", profile: Optional["SystemProfile"] = None
+    ) -> str:
         """Generate rich terminal output with performance tiers."""
         lines = []
 
@@ -110,7 +112,12 @@ class ReportGenerator:
             tier = classify_tier(r.name, r.mean_ms)
 
             # Calculate MSPS (mega samples per second)
-            msps = r.throughput * r.notes_data.get("n_samples", 65536) / 1e6 if hasattr(r, "notes_data") and isinstance(getattr(r, "notes_data", None), dict) else 0.0
+            msps = (
+                r.throughput * r.notes_data.get("n_samples", 65536) / 1e6
+                if hasattr(r, "notes_data")
+                and isinstance(getattr(r, "notes_data", None), dict)
+                else 0.0
+            )
 
             p50 = r.p50_ms if hasattr(r, "p50_ms") else r.mean_ms
             p95 = r.p95_ms if hasattr(r, "p95_ms") else r.max_ms
@@ -129,9 +136,11 @@ class ReportGenerator:
         return "\n".join(lines)
 
     @staticmethod
-    def to_json(report: "DSPBenchmarkReport",
-                profile: Optional["SystemProfile"] = None,
-                output_path: str = "benchmark_report.json") -> str:
+    def to_json(
+        report: "DSPBenchmarkReport",
+        profile: Optional["SystemProfile"] = None,
+        output_path: str = "benchmark_report.json",
+    ) -> str:
         """Export report to JSON with full metadata."""
         data = {
             "meta": {
@@ -177,11 +186,13 @@ class ReportGenerator:
         return output_path
 
     @staticmethod
-    def to_csv(report: "DSPBenchmarkReport",
-               output_path: str = "benchmark_report.csv") -> str:
+    def to_csv(
+        report: "DSPBenchmarkReport", output_path: str = "benchmark_report.csv"
+    ) -> str:
         """Export report to CSV."""
         try:
             import pandas as pd
+
             rows = []
             for r in report.results:
                 row = {
@@ -203,29 +214,42 @@ class ReportGenerator:
         except ImportError:
             # Fallback without pandas
             import csv
-            fieldnames = ["name", "mean_ms", "min_ms", "max_ms", "std_ms",
-                          "throughput", "tier", "iterations"]
+
+            fieldnames = [
+                "name",
+                "mean_ms",
+                "min_ms",
+                "max_ms",
+                "std_ms",
+                "throughput",
+                "tier",
+                "iterations",
+            ]
             with open(output_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 writer.writeheader()
                 for r in report.results:
-                    writer.writerow({
-                        "name": r.name,
-                        "mean_ms": round(r.mean_ms, 4),
-                        "min_ms": round(r.min_ms, 4),
-                        "max_ms": round(r.max_ms, 4),
-                        "std_ms": round(r.std_ms, 4),
-                        "throughput": round(r.throughput, 2),
-                        "tier": classify_tier(r.name, r.mean_ms),
-                        "iterations": r.iterations,
-                    })
+                    writer.writerow(
+                        {
+                            "name": r.name,
+                            "mean_ms": round(r.mean_ms, 4),
+                            "min_ms": round(r.min_ms, 4),
+                            "max_ms": round(r.max_ms, 4),
+                            "std_ms": round(r.std_ms, 4),
+                            "throughput": round(r.throughput, 2),
+                            "tier": classify_tier(r.name, r.mean_ms),
+                            "iterations": r.iterations,
+                        }
+                    )
         log.info(f"CSV report saved: {output_path}")
         return output_path
 
     @staticmethod
-    def to_markdown(report: "DSPBenchmarkReport",
-                    profile: Optional["SystemProfile"] = None,
-                    output_path: str = "benchmark_report.md") -> str:
+    def to_markdown(
+        report: "DSPBenchmarkReport",
+        profile: Optional["SystemProfile"] = None,
+        output_path: str = "benchmark_report.md",
+    ) -> str:
         """Export report to Markdown with tables and assessment."""
         lines = [
             "# DynamiX Labs — DSP Benchmark Report",
@@ -237,26 +261,30 @@ class ReportGenerator:
         ]
 
         if profile:
-            lines.extend([
-                "## System Profile",
-                "",
-                f"| Property | Value |",
-                f"|:---|:---|",
-                f"| CPU | {profile.cpu.model} |",
-                f"| Cores | {profile.cpu.cores_physical}P / {profile.cpu.cores_logical}L |",
-                f"| RAM | {profile.memory.total_gb:.1f} GB |",
-                f"| GPU | {profile.gpu.name if profile.gpu.available else 'None'} |",
-                f"| BLAS | {profile.numeric.blas_library} |",
-                "",
-            ])
+            lines.extend(
+                [
+                    "## System Profile",
+                    "",
+                    f"| Property | Value |",
+                    f"|:---|:---|",
+                    f"| CPU | {profile.cpu.model} |",
+                    f"| Cores | {profile.cpu.cores_physical}P / {profile.cpu.cores_logical}L |",
+                    f"| RAM | {profile.memory.total_gb:.1f} GB |",
+                    f"| GPU | {profile.gpu.name if profile.gpu.available else 'None'} |",
+                    f"| BLAS | {profile.numeric.blas_library} |",
+                    "",
+                ]
+            )
 
         # Results table
-        lines.extend([
-            "## Benchmark Results",
-            "",
-            "| Test | Mean (ms) | Min (ms) | Max (ms) | Throughput | Tier |",
-            "|:---|---:|---:|---:|---:|:---|",
-        ])
+        lines.extend(
+            [
+                "## Benchmark Results",
+                "",
+                "| Test | Mean (ms) | Min (ms) | Max (ms) | Throughput | Tier |",
+                "|:---|---:|---:|---:|---:|:---|",
+            ]
+        )
 
         for r in report.results:
             tier = classify_tier(r.name, r.mean_ms)
@@ -265,15 +293,17 @@ class ReportGenerator:
                 f"{r.max_ms:.2f} | {r.throughput:.0f}/s | {tier} |"
             )
 
-        lines.extend([
-            "",
-            "## Assessment",
-            "",
-            f"**System Readiness:** {overall_readiness(report.results)}",
-            "",
-            "---",
-            "*Generated by DynamiX Labs SDR Hardware Benchmark v2.0*",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Assessment",
+                "",
+                f"**System Readiness:** {overall_readiness(report.results)}",
+                "",
+                "---",
+                "*Generated by DynamiX Labs SDR Hardware Benchmark v2.0*",
+            ]
+        )
 
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
@@ -281,8 +311,7 @@ class ReportGenerator:
         return output_path
 
     @staticmethod
-    def compare(report: "DSPBenchmarkReport",
-                baseline_path: str) -> str:
+    def compare(report: "DSPBenchmarkReport", baseline_path: str) -> str:
         """Compare current results against a baseline JSON report."""
         try:
             with open(baseline_path, "r", encoding="utf-8") as f:
@@ -305,15 +334,23 @@ class ReportGenerator:
                 bl_mean = bl.get("mean_ms", 0)
                 if bl_mean > 0:
                     delta_pct = ((r.mean_ms - bl_mean) / bl_mean) * 100
-                    status = "✓ FASTER" if delta_pct < -5 else ("✗ SLOWER" if delta_pct > 5 else "≈ SAME")
+                    status = (
+                        "✓ FASTER"
+                        if delta_pct < -5
+                        else ("✗ SLOWER" if delta_pct > 5 else "≈ SAME")
+                    )
                     lines.append(
                         f"{r.name:<28} {r.mean_ms:>9.2f}ms {bl_mean:>9.2f}ms "
                         f"{delta_pct:>+9.1f}% {status:<10}"
                     )
                 else:
-                    lines.append(f"{r.name:<28} {r.mean_ms:>9.2f}ms {'N/A':>10} {'N/A':>10}")
+                    lines.append(
+                        f"{r.name:<28} {r.mean_ms:>9.2f}ms {'N/A':>10} {'N/A':>10}"
+                    )
             else:
-                lines.append(f"{r.name:<28} {r.mean_ms:>9.2f}ms {'NEW':>10} {'---':>10}")
+                lines.append(
+                    f"{r.name:<28} {r.mean_ms:>9.2f}ms {'NEW':>10} {'---':>10}"
+                )
 
         lines.append("─" * 70)
         return "\n".join(lines)

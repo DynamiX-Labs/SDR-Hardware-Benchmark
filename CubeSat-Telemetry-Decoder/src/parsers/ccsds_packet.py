@@ -6,11 +6,11 @@ Ported from gr-satellites space_packet.py with Python-native struct parsing.
 DynamiX Labs
 """
 
-import struct
 import logging
+import struct
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict
 from enum import IntEnum
+from typing import Dict, List, Optional
 
 log = logging.getLogger("cubesat.ccsds")
 
@@ -30,13 +30,14 @@ class SequenceFlags(IntEnum):
 @dataclass
 class CCSDSPrimaryHeader:
     """CCSDS Space Packet Primary Header (6 bytes / 48 bits)."""
-    version: int = 0           # 3 bits — always 000 for current version
-    packet_type: int = 0       # 1 bit — 0=TM, 1=TC
+
+    version: int = 0  # 3 bits — always 000 for current version
+    packet_type: int = 0  # 1 bit — 0=TM, 1=TC
     secondary_header_flag: bool = False  # 1 bit
-    apid: int = 0              # 11 bits — Application Process Identifier
-    sequence_flags: int = 3    # 2 bits — segmentation flags
-    sequence_count: int = 0    # 14 bits — packet sequence counter
-    data_length: int = 0       # 16 bits — (num data bytes - 1)
+    apid: int = 0  # 11 bits — Application Process Identifier
+    sequence_flags: int = 3  # 2 bits — segmentation flags
+    sequence_count: int = 0  # 14 bits — packet sequence counter
+    data_length: int = 0  # 16 bits — (num data bytes - 1)
 
     @property
     def is_telemetry(self) -> bool:
@@ -59,6 +60,7 @@ class CCSDSPrimaryHeader:
 @dataclass
 class CCSDSSpacePacket:
     """Complete CCSDS Space Packet with parsed fields."""
+
     header: CCSDSPrimaryHeader = field(default_factory=CCSDSPrimaryHeader)
     secondary_header: Optional[bytes] = None
     payload: bytes = b""
@@ -121,12 +123,15 @@ class CCSDSPacketParser:
 
         # Extract data field
         data_field_length = header.data_length + 1
-        data_field = data[cls.PRIMARY_HEADER_SIZE:
-                          cls.PRIMARY_HEADER_SIZE + data_field_length]
+        data_field = data[
+            cls.PRIMARY_HEADER_SIZE : cls.PRIMARY_HEADER_SIZE + data_field_length
+        ]
 
         if len(data_field) < data_field_length:
-            log.warning(f"Truncated packet: expected {data_field_length} data bytes, "
-                        f"got {len(data_field)}")
+            log.warning(
+                f"Truncated packet: expected {data_field_length} data bytes, "
+                f"got {len(data_field)}"
+            )
             data_field_length = len(data_field)
 
         # Parse secondary header if present
@@ -146,12 +151,12 @@ class CCSDSPacketParser:
 
                 # Extract timestamp from CUC time code
                 if n_basic > 0:
-                    basic_bytes = data_field[1:1 + n_basic]
-                    timestamp_val = int.from_bytes(basic_bytes, 'big')
+                    basic_bytes = data_field[1 : 1 + n_basic]
+                    timestamp_val = int.from_bytes(basic_bytes, "big")
                     if n_frac > 0:
-                        frac_bytes = data_field[1 + n_basic:1 + n_basic + n_frac]
-                        frac_val = int.from_bytes(frac_bytes, 'big')
-                        timestamp_val += frac_val / (256 ** n_frac)
+                        frac_bytes = data_field[1 + n_basic : 1 + n_basic + n_frac]
+                        frac_val = int.from_bytes(frac_bytes, "big")
+                        timestamp_val += frac_val / (256**n_frac)
                     packet.timestamp = float(timestamp_val)
 
         packet.payload = data_field[offset:]
@@ -164,13 +169,17 @@ class CCSDSPacketParser:
         return packet
 
     @classmethod
-    def parse_stream(cls, stream: bytes,
-                     max_packets: int = 1000) -> List[CCSDSSpacePacket]:
+    def parse_stream(
+        cls, stream: bytes, max_packets: int = 1000
+    ) -> List[CCSDSSpacePacket]:
         """Parse multiple CCSDS packets from a byte stream."""
         packets = []
         offset = 0
 
-        while offset < len(stream) - cls.PRIMARY_HEADER_SIZE and len(packets) < max_packets:
+        while (
+            offset < len(stream) - cls.PRIMARY_HEADER_SIZE
+            and len(packets) < max_packets
+        ):
             header = cls.parse_primary_header(stream[offset:])
             if header is None:
                 offset += 1
@@ -180,7 +189,7 @@ class CCSDSPacketParser:
             if offset + pkt_len > len(stream):
                 break
 
-            pkt = cls.parse(stream[offset:offset + pkt_len])
+            pkt = cls.parse(stream[offset : offset + pkt_len])
             if pkt:
                 packets.append(pkt)
             offset += pkt_len

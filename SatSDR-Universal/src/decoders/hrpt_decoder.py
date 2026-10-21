@@ -12,10 +12,11 @@ Inspired by:
 DynamiX Labs
 """
 
-import numpy as np
 import logging
-from typing import Optional, List, Dict, Tuple
 from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 from .base_decoder import BaseDecoder
 
@@ -25,6 +26,7 @@ log = logging.getLogger("satsdr.hrpt")
 @dataclass
 class HRPTFrame:
     """Decoded HRPT CADU frame."""
+
     sync_word: bytes = b""
     spacecraft_id: int = 0
     virtual_channel: int = 0
@@ -40,6 +42,7 @@ class HRPTFrame:
 @dataclass
 class HRPTTelemetry:
     """Extracted HRPT telemetry values."""
+
     spacecraft_name: str = ""
     orbit_number: int = 0
     day_of_year: int = 0
@@ -156,9 +159,7 @@ class HRPTDecoder(BaseDecoder):
 
     def _extract_frames(self, bit_stream: np.ndarray) -> List[bytes]:
         """Find sync words and extract CADU frames from bitstream."""
-        sync_bits = np.unpackbits(
-            np.frombuffer(self.SYNC_WORD, dtype=np.uint8)
-        )
+        sync_bits = np.unpackbits(np.frombuffer(self.SYNC_WORD, dtype=np.uint8))
 
         frames = []
         frame_bits = self.CADU_SIZE * 8
@@ -170,7 +171,7 @@ class HRPTDecoder(BaseDecoder):
         if len(bipolar_stream) < len(bipolar_sync):
             return frames
 
-        corr = np.correlate(bipolar_stream, bipolar_sync, mode='valid')
+        corr = np.correlate(bipolar_stream, bipolar_sync, mode="valid")
         threshold = len(sync_bits) * 0.85  # Allow ~15% bit errors
 
         # Find peaks
@@ -181,8 +182,8 @@ class HRPTDecoder(BaseDecoder):
             end = start + frame_bits - len(sync_bits) * 8
 
             if end <= len(bit_stream):
-                frame_data = np.packbits(bit_stream[peak:peak + frame_bits])
-                frames.append(bytes(frame_data[:self.CADU_SIZE]))
+                frame_data = np.packbits(bit_stream[peak : peak + frame_bits])
+                frames.append(bytes(frame_data[: self.CADU_SIZE]))
                 self._frame_count += 1
 
         return frames
@@ -193,21 +194,25 @@ class HRPTDecoder(BaseDecoder):
             return None
 
         frame = HRPTFrame(raw_data=b"")
-        frame.sync_word = frame_data[:len(self.SYNC_WORD)]
+        frame.sync_word = frame_data[: len(self.SYNC_WORD)]
 
         # Parse VCDU header (after sync word)
         vcdu_start = len(self.SYNC_WORD)
         if vcdu_start + 6 <= len(frame_data):
-            vcdu_header = frame_data[vcdu_start:vcdu_start + 6]
+            vcdu_header = frame_data[vcdu_start : vcdu_start + 6]
 
             # VCDU header fields
             version = (vcdu_header[0] >> 6) & 0x03
-            frame.spacecraft_id = ((vcdu_header[0] & 0x3F) << 2) | ((vcdu_header[1] >> 6) & 0x03)
+            frame.spacecraft_id = ((vcdu_header[0] & 0x3F) << 2) | (
+                (vcdu_header[1] >> 6) & 0x03
+            )
             frame.virtual_channel = (vcdu_header[1] >> 3) & 0x07
-            frame.frame_count = ((vcdu_header[1] & 0x07) << 21) | \
-                                (vcdu_header[2] << 13) | \
-                                (vcdu_header[3] << 5) | \
-                                ((vcdu_header[4] >> 3) & 0x1F)
+            frame.frame_count = (
+                ((vcdu_header[1] & 0x07) << 21)
+                | (vcdu_header[2] << 13)
+                | (vcdu_header[3] << 5)
+                | ((vcdu_header[4] >> 3) & 0x1F)
+            )
 
             # Data zone
             data_start = vcdu_start + self.VCDU_HEADER_SIZE + self.MPDU_HEADER_SIZE

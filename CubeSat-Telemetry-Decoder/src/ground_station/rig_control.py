@@ -3,14 +3,17 @@ Rig Control Module
 Handles communication with Hamlib's rigctld (frequency) and rotctld (antenna rotors).
 """
 
-import socket
 import logging
-from typing import Tuple, Optional
+import socket
+from typing import Optional, Tuple
 
 log = logging.getLogger("cubesat.rig")
 
+
 class RigController:
-    def __init__(self, host: str = "127.0.0.1", rig_port: int = 4532, rot_port: int = 4533):
+    def __init__(
+        self, host: str = "127.0.0.1", rig_port: int = 4532, rot_port: int = 4533
+    ):
         self.host = host
         self.rig_port = rig_port
         self.rot_port = rot_port

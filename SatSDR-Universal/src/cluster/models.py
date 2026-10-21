@@ -4,18 +4,20 @@ MessagePack-serialisable job and worker descriptors.
 DynamiX Labs | Phase 3
 """
 
-import uuid
-import time
 import enum
-from dataclasses import dataclass, field, asdict
-from typing import Optional, List, Dict, Any
+import time
+import uuid
+from dataclasses import asdict, dataclass, field
+from typing import Any, Dict, List, Optional
 
 # Try msgpack, fall back to JSON
 try:
     import msgpack  # type: ignore[import-untyped]
+
     _USE_MSGPACK = True
 except ImportError:
     import json
+
     _USE_MSGPACK = False
 
 
@@ -24,6 +26,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 class JobStatus(enum.Enum):
     """Lifecycle states for a decode job."""
+
     QUEUED = "queued"
     DISPATCHED = "dispatched"
     RUNNING = "running"

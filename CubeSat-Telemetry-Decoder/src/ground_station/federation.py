@@ -1,24 +1,30 @@
-import paho.mqtt.client as mqtt
-import subprocess
-import struct
-import time
-import json
+import base64
 import hashlib
+import json
 import logging
 import os
-import base64
+import struct
+import subprocess
+import time
 
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import serialization
+import paho.mqtt.client as mqtt
 from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 
 log = logging.getLogger("cubesat.federation")
 
 
 class FederationNode:
 
-    def __init__(self, node_id: str, private_key_path: str = None, public_keys_dir: str = None, broker: str = "mqtt.eclipseprojects.io", port: int = 1883):
+    def __init__(
+        self,
+        node_id: str,
+        private_key_path: str = None,
+        public_keys_dir: str = None,
+        broker: str = "mqtt.eclipseprojects.io",
+        port: int = 1883,
+    ):
         self.node_id = node_id
         self.private_key = None
         self.trust_store = {}
@@ -37,7 +43,9 @@ class FederationNode:
     def _load_keys(self, priv_path: str, pub_dir: str):
         try:
             with open(priv_path, "rb") as f:
-                self.private_key = serialization.load_pem_private_key(f.read(), password=None)
+                self.private_key = serialization.load_pem_private_key(
+                    f.read(), password=None
+                )
             log.info("Loaded Node ECDSA Private Key.")
 
             if os.path.exists(pub_dir):
@@ -47,24 +55,32 @@ class FederationNode:
                         with open(os.path.join(pub_dir, filename), "rb") as f:
                             pub_key = serialization.load_pem_public_key(f.read())
                             self.trust_store[node_name] = pub_key
-                log.info(f"Trust Store loaded with {len(self.trust_store)} authorized nodes.")
+                log.info(
+                    f"Trust Store loaded with {len(self.trust_store)} authorized nodes."
+                )
         except Exception as e:
             log.error(f"Failed to load PKI keys: {e}")
 
     def _sync_time(self):
         try:
-            output = subprocess.check_output(['chronyc', 'tracking'], universal_newlines=True)
-            for line in output.split('\n'):
-                if 'System time' in line:
-                    parts = line.split(':')
-                    val_str = parts[1].strip().split(' ')[0]
+            output = subprocess.check_output(
+                ["chronyc", "tracking"], universal_newlines=True
+            )
+            for line in output.split("\n"):
+                if "System time" in line:
+                    parts = line.split(":")
+                    val_str = parts[1].strip().split(" ")[0]
                     self.time_offset_s = float(val_str)
-                elif 'Root dispersion' in line:
-                    val_str = line.split(':')[1].strip().split(' ')[0]
+                elif "Root dispersion" in line:
+                    val_str = line.split(":")[1].strip().split(" ")[0]
                     self.uncertainty_ms = float(val_str) * 1000.0
-            log.info(f"Chrony Sync: Offset {self.time_offset_s:.6f}s, Uncertainty ±{self.uncertainty_ms:.2f}ms")
+            log.info(
+                f"Chrony Sync: Offset {self.time_offset_s:.6f}s, Uncertainty ±{self.uncertainty_ms:.2f}ms"
+            )
         except Exception as e:
-            log.warning(f"Chrony failed/missing ({e}). Falling back to dummy uncertainty ±100ms.")
+            log.warning(
+                f"Chrony failed/missing ({e}). Falling back to dummy uncertainty ±100ms."
+            )
             self.uncertainty_ms = 100.0
 
     def connect(self):
@@ -80,9 +96,15 @@ class FederationNode:
             return ""
         msg = payload + struct.pack(">d", timestamp)
         sig = self.private_key.sign(msg, ec.ECDSA(hashes.SHA256()))
-        return base64.b64encode(sig).decode('ascii')
+        return base64.b64encode(sig).decode("ascii")
 
-    def verify_packet(self, sender_node_id: str, payload_hex: str, timestamp: float, signature_b64: str) -> bool:
+    def verify_packet(
+        self,
+        sender_node_id: str,
+        payload_hex: str,
+        timestamp: float,
+        signature_b64: str,
+    ) -> bool:
         if sender_node_id not in self.trust_store:
             log.warning(f"Rejected packet from unknown node: {sender_node_id}")
             return False
@@ -123,7 +145,7 @@ class FederationNode:
             "timestamp_uncertainty_ms": round(self.uncertainty_ms, 2),
             "hash": packet_hash,
             "signature": signature,
-            "payload_hex": payload.hex()
+            "payload_hex": payload.hex(),
         }
         topic = f"cubesat/telemetry/{satellite}"
         self.client.publish(topic, json.dumps(msg))

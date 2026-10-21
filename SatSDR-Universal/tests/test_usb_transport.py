@@ -3,19 +3,16 @@ Tests for USB Transport Layer and SharedRingBuffer
 DynamiX Labs | Advanced Hardware Integration
 """
 
-import pytest
-import numpy as np
 import os
 import sys
 
+import numpy as np
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from utils.usb_transport import (
-    SharedRingBuffer,
-    USBTransportProfiler,
-    BufferEvent,
-    USBDeviceInfo,
-    TransportMetrics,
-)
+from utils.usb_transport import (BufferEvent, SharedRingBuffer,
+                                 TransportMetrics, USBDeviceInfo,
+                                 USBTransportProfiler)
 
 
 class TestUSBTransport:
@@ -23,7 +20,12 @@ class TestUSBTransport:
 
     def test_buffer_event_dataclass(self):
         """Verify BufferEvent dataclass serialization."""
-        evt = BufferEvent(timestamp=100.0, event_type="overflow", samples_lost=1024, buffer_utilization=0.98)
+        evt = BufferEvent(
+            timestamp=100.0,
+            event_type="overflow",
+            samples_lost=1024,
+            buffer_utilization=0.98,
+        )
         d = evt.to_dict()
         assert d["type"] == "overflow"
         assert d["samples_lost"] == 1024
@@ -46,7 +48,9 @@ class TestUSBTransport:
 
     def test_transport_metrics_dataclass(self):
         """Verify TransportMetrics counters and snapshot."""
-        m = TransportMetrics(total_samples_written=10000, total_samples_read=8000, total_overflows=1)
+        m = TransportMetrics(
+            total_samples_written=10000, total_samples_read=8000, total_overflows=1
+        )
         snap = m.snapshot()
         assert snap["total_samples_written"] == 10000
         assert snap["total_samples_read"] == 8000

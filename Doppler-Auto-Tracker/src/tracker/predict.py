@@ -1,9 +1,10 @@
 """Satellite pass predictor (AOS/LOS/Max-El)."""
 
-import math
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Optional
 import logging
+import math
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional
+
 from rich.console import Console
 from rich.table import Table
 
@@ -14,11 +15,17 @@ log = logging.getLogger("doppler.predict")
 MIN_ELEVATION = 5.0  # Minimum elevation for a visible pass
 
 
-def _azel_from_tle(tle_line1: str, tle_line2: str,
-                   obs_lat: float, obs_lon: float, obs_alt: float,
-                   dt: datetime):
+def _azel_from_tle(
+    tle_line1: str,
+    tle_line2: str,
+    obs_lat: float,
+    obs_lon: float,
+    obs_alt: float,
+    dt: datetime,
+):
     """Compute Az/El/Range for satellite at given time. Returns (az, el, range_km)."""
     from .doppler import DopplerCalculator
+
     calc = DopplerCalculator(tle_line1, tle_line2, obs_lat, obs_lon, obs_alt)
     return calc.get_azel(dt)
 
@@ -26,20 +33,30 @@ def _azel_from_tle(tle_line1: str, tle_line2: str,
 class PassPredictor:
     """Predicts satellite passes visible from a ground station."""
 
-    def __init__(self, obs_lat: float, obs_lon: float, obs_alt: float = 0.0,
-                 min_elevation: float = MIN_ELEVATION):
+    def __init__(
+        self,
+        obs_lat: float,
+        obs_lon: float,
+        obs_alt: float = 0.0,
+        min_elevation: float = MIN_ELEVATION,
+    ):
         if not (-90.0 <= obs_lat <= 90.0):
-            raise ValueError(f"Invalid latitude {obs_lat}. Must be between -90 and +90.")
+            raise ValueError(
+                f"Invalid latitude {obs_lat}. Must be between -90 and +90."
+            )
         if not (-180.0 <= obs_lon <= 180.0):
-            raise ValueError(f"Invalid longitude {obs_lon}. Must be between -180 and +180.")
-            
+            raise ValueError(
+                f"Invalid longitude {obs_lon}. Must be between -180 and +180."
+            )
+
         self.obs_lat = obs_lat
         self.obs_lon = obs_lon
         self.obs_alt = obs_alt
         self.min_elevation = min_elevation
 
-    def predict(self, tle: dict, hours_ahead: float = 24.0,
-                time_step_s: float = 10.0) -> List[Dict]:
+    def predict(
+        self, tle: dict, hours_ahead: float = 24.0, time_step_s: float = 10.0
+    ) -> List[Dict]:
         """Find all visible passes within the prediction window."""
         passes = []
         now = datetime.now(timezone.utc)
@@ -55,8 +72,12 @@ class PassPredictor:
         while dt < end:
             try:
                 az, el, rng = _azel_from_tle(
-                    tle["line1"], tle["line2"],
-                    self.obs_lat, self.obs_lon, self.obs_alt, dt
+                    tle["line1"],
+                    tle["line2"],
+                    self.obs_lat,
+                    self.obs_lon,
+                    self.obs_alt,
+                    dt,
                 )
             except Exception:
                 dt += step
@@ -86,7 +107,9 @@ class PassPredictor:
                     current_pass["los"] = dt
                     duration = (dt - current_pass["aos"]).total_seconds()
                     current_pass["duration_s"] = int(duration)
-                    current_pass["quality"] = "★" if current_pass["max_el"] >= 50 else ""
+                    current_pass["quality"] = (
+                        "★" if current_pass["max_el"] >= 50 else ""
+                    )
                     passes.append(current_pass)
 
             dt += step
@@ -100,31 +123,31 @@ class PassPredictor:
             return
 
         name = passes[0].get("satellite", "Unknown")
-        
+
         table = Table(
             title=f"Upcoming Passes for {name}\nStation: {station_name} ({self.obs_lat:.4f}°N, {self.obs_lon:.4f}°E)",
-            style="cyan"
+            style="cyan",
         )
         table.add_column("#", justify="right", style="cyan")
         table.add_column("AOS (UTC)", style="magenta")
         table.add_column("LOS (UTC)", style="magenta")
         table.add_column("Max El", justify="right", style="green")
         table.add_column("Duration", justify="right", style="yellow")
-        
+
         for i, p in enumerate(passes, 1):
             aos = p["aos"].strftime("%Y-%m-%d %H:%M:%S")
             los = p["los"].strftime("%Y-%m-%d %H:%M:%S")
             dur_m = p["duration_s"] // 60
             dur_s = p["duration_s"] % 60
             quality = p.get("quality", "")
-            
+
             table.add_row(
                 str(i),
                 aos,
                 los,
                 f"{p['max_el']:.1f}°",
-                f"{dur_m}m {dur_s:02d}s {quality}"
+                f"{dur_m}m {dur_s:02d}s {quality}",
             )
-            
+
         console.print(table)
         console.print()

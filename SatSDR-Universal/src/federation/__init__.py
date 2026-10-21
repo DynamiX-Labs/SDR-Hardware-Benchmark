@@ -19,34 +19,37 @@ Usage:
     node.start()  # Blocking event loop
 """
 
+import logging
+import threading
 import time
 import uuid
-import threading
-import logging
-from dataclasses import dataclass, field, asdict
-from typing import Optional, List, Dict, Callable, Any
 from collections import deque
+from dataclasses import asdict, dataclass, field
+from typing import Any, Callable, Dict, List, Optional
 
 log = logging.getLogger("satsdr.federation")
 
 try:
     import zmq  # type: ignore[import-untyped]
+
     _ZMQ_AVAILABLE = True
 except ImportError:
     _ZMQ_AVAILABLE = False
 
 try:
-    from ..cluster.models import serialize, deserialize
+    from ..cluster.models import deserialize, serialize
 except (ImportError, ValueError):
     # Fallback for direct imports (test runner without package context)
     try:
-        from cluster.models import serialize, deserialize
+        from cluster.models import deserialize, serialize
     except ImportError:
         import json as _json
+
         def serialize(obj):
             if hasattr(obj, "to_dict"):
                 return _json.dumps(obj.to_dict()).encode("utf-8")
             return _json.dumps(obj).encode("utf-8")
+
         def deserialize(raw):
             return _json.loads(raw.decode("utf-8"))
 
@@ -57,6 +60,7 @@ except (ImportError, ValueError):
 @dataclass
 class StationInfo:
     """Ground station descriptor for federation registration."""
+
     station_id: str
     latitude: float = 0.0
     longitude: float = 0.0
@@ -78,6 +82,7 @@ class StationInfo:
 @dataclass
 class TelemetryShare:
     """A telemetry frame shared across the federation."""
+
     frame_id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     station_id: str = ""
     satellite: str = ""
@@ -99,6 +104,7 @@ class TelemetryShare:
 @dataclass
 class PassCoordination:
     """Coordinate satellite passes across federated stations."""
+
     satellite: str = ""
     requesting_station: str = ""
     aos_utc: str = ""
@@ -165,7 +171,9 @@ class FederationHub:
         poller = zmq.Poller()
         poller.register(router, zmq.POLLIN)
 
-        log.info(f"Federation Hub started | ROUTER: {self.bind_addr} | PUB: {self.pub_addr}")
+        log.info(
+            f"Federation Hub started | ROUTER: {self.bind_addr} | PUB: {self.pub_addr}"
+        )
 
         try:
             while self._running:
@@ -212,15 +220,25 @@ class FederationHub:
             if cmd == b"REGISTER":
                 info = StationInfo.from_dict(payload)
                 self._stations[info.station_id] = info
-                log.info(f"Station registered: {info.station_id} "
-                         f"({info.latitude:.2f}, {info.longitude:.2f})")
-                router.send_multipart([
-                    station_addr, b"ACK",
-                    serialize({"status": "registered", "stations": len(self._stations)}),
-                ])
-                pub.send_multipart([
-                    b"station.join", serialize(info.to_dict()),
-                ])
+                log.info(
+                    f"Station registered: {info.station_id} "
+                    f"({info.latitude:.2f}, {info.longitude:.2f})"
+                )
+                router.send_multipart(
+                    [
+                        station_addr,
+                        b"ACK",
+                        serialize(
+                            {"status": "registered", "stations": len(self._stations)}
+                        ),
+                    ]
+                )
+                pub.send_multipart(
+                    [
+                        b"station.join",
+                        serialize(info.to_dict()),
+                    ]
+                )
 
             elif cmd == b"TELEMETRY":
                 telem = TelemetryShare.from_dict(payload)
@@ -229,9 +247,12 @@ class FederationHub:
                 if telem.station_id in self._stations:
                     self._stations[telem.station_id].last_seen = time.time()
                 # Broadcast to all
-                pub.send_multipart([
-                    b"telemetry.new", serialize(telem.to_dict()),
-                ])
+                pub.send_multipart(
+                    [
+                        b"telemetry.new",
+                        serialize(telem.to_dict()),
+                    ]
+                )
                 log.debug(f"Telemetry from {telem.station_id}: {telem.satellite}")
 
             elif cmd == b"HEARTBEAT":
@@ -242,9 +263,12 @@ class FederationHub:
             elif cmd == b"PASS_ANNOUNCE":
                 coord = PassCoordination.from_dict(payload)
                 self._pass_queue.append(coord)
-                pub.send_multipart([
-                    b"pass.announced", serialize(coord.to_dict()),
-                ])
+                pub.send_multipart(
+                    [
+                        b"pass.announced",
+                        serialize(coord.to_dict()),
+                    ]
+                )
 
             elif cmd == b"PASS_CLAIM":
                 sat = payload.get("satellite", "")
@@ -253,16 +277,23 @@ class FederationHub:
                     if p.satellite == sat and p.status == "available":
                         p.claimed_by = claimer
                         p.status = "claimed"
-                        pub.send_multipart([
-                            b"pass.claimed", serialize(p.to_dict()),
-                        ])
+                        pub.send_multipart(
+                            [
+                                b"pass.claimed",
+                                serialize(p.to_dict()),
+                            ]
+                        )
                         break
 
             elif cmd == b"GET_STATIONS":
                 stations = [s.to_dict() for s in self._stations.values()]
-                router.send_multipart([
-                    station_addr, b"STATIONS", serialize(stations),
-                ])
+                router.send_multipart(
+                    [
+                        station_addr,
+                        b"STATIONS",
+                        serialize(stations),
+                    ]
+                )
 
     def _check_stations(self):
         """Mark stations offline if no heartbeat received."""
@@ -375,10 +406,12 @@ class FederationNode:
                     self._handle_broadcast(topic_frames)
 
                 if time.time() - last_heartbeat > 15.0:
-                    dealer.send_multipart([
-                        b"HEARTBEAT",
-                        serialize({"station_id": self.station_id}),
-                    ])
+                    dealer.send_multipart(
+                        [
+                            b"HEARTBEAT",
+                            serialize({"station_id": self.station_id}),
+                        ]
+                    )
                     last_heartbeat = time.time()
 
         except KeyboardInterrupt:
@@ -394,8 +427,12 @@ class FederationNode:
         self._running = False
 
     def publish_telemetry(
-        self, satellite: str, decoder: str, payload: dict,
-        frequency_hz: float = 0.0, snr_db: float = 0.0,
+        self,
+        satellite: str,
+        decoder: str,
+        payload: dict,
+        frequency_hz: float = 0.0,
+        snr_db: float = 0.0,
         _dealer=None,
     ):
         """
@@ -426,8 +463,13 @@ class FederationNode:
             ctx.term()
 
     def announce_pass(
-        self, satellite: str, aos_utc: str, los_utc: str,
-        max_el: float, decoder: str, freq: float,
+        self,
+        satellite: str,
+        aos_utc: str,
+        los_utc: str,
+        max_el: float,
+        decoder: str,
+        freq: float,
     ):
         """Announce an upcoming satellite pass to the federation."""
         coord = PassCoordination(

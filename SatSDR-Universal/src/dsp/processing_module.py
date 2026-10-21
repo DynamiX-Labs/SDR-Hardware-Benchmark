@@ -12,8 +12,8 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable, Type
 from enum import Enum, auto
+from typing import Any, Callable, Dict, List, Optional, Type
 
 import numpy as np
 
@@ -22,19 +22,21 @@ log = logging.getLogger("satsdr.module")
 
 class ModuleDataType(Enum):
     """Data types that modules can accept/produce."""
-    FILE = auto()           # Generic file data
-    STREAM = auto()         # Generic byte stream (circular buffer)
-    DSP_STREAM = auto()     # Complex float DSP stream
+
+    FILE = auto()  # Generic file data
+    STREAM = auto()  # Generic byte stream (circular buffer)
+    DSP_STREAM = auto()  # Complex float DSP stream
     PACKET_STREAM = auto()  # Decoded packet stream
 
 
 @dataclass
 class ModuleStats:
     """Runtime statistics for a processing module."""
+
     samples_processed: int = 0
     bytes_processed: int = 0
     processing_time_ms: float = 0.0
-    throughput_sps: float = 0.0    # Samples per second
+    throughput_sps: float = 0.0  # Samples per second
     is_running: bool = False
     error_count: int = 0
     custom: Dict[str, Any] = field(default_factory=dict)
@@ -91,12 +93,16 @@ class ProcessingModule(ABC):
 
     def set_input_type(self, dtype: ModuleDataType):
         if dtype not in self.get_input_types():
-            raise ValueError(f"Module {self.get_id()} does not support input type {dtype}")
+            raise ValueError(
+                f"Module {self.get_id()} does not support input type {dtype}"
+            )
         self._input_type = dtype
 
     def set_output_type(self, dtype: ModuleDataType):
         if dtype not in self.get_output_types():
-            raise ValueError(f"Module {self.get_id()} does not support output type {dtype}")
+            raise ValueError(
+                f"Module {self.get_id()} does not support output type {dtype}"
+            )
         self._output_type = dtype
 
     @property
@@ -185,9 +191,11 @@ class ProcessingModule(ABC):
 
 # ── Module Registry ──────────────────────────────────────────────────────
 
+
 @dataclass
 class ModuleEntry:
     """Registry entry for a processing module."""
+
     module_id: str
     module_class: Type[ProcessingModule]
     default_params: Dict = field(default_factory=dict)
@@ -205,10 +213,18 @@ class ModuleRegistry:
     _registry: Dict[str, ModuleEntry] = {}
 
     @classmethod
-    def register(cls, module_class: Type[ProcessingModule],
-                 default_params: Dict = None, description: str = ""):
+    def register(
+        cls,
+        module_class: Type[ProcessingModule],
+        default_params: Dict = None,
+        description: str = "",
+    ):
         """Register a module class."""
-        module_id = module_class.get_id_static() if hasattr(module_class, 'get_id_static') else module_class.__name__
+        module_id = (
+            module_class.get_id_static()
+            if hasattr(module_class, "get_id_static")
+            else module_class.__name__
+        )
         cls._registry[module_id] = ModuleEntry(
             module_id=module_id,
             module_class=module_class,
@@ -221,8 +237,10 @@ class ModuleRegistry:
     def get_instance(cls, module_id: str, parameters: Dict = None) -> ProcessingModule:
         """Create an instance of a registered module."""
         if module_id not in cls._registry:
-            raise KeyError(f"Unknown module: {module_id}. "
-                           f"Available: {list(cls._registry.keys())}")
+            raise KeyError(
+                f"Unknown module: {module_id}. "
+                f"Available: {list(cls._registry.keys())}"
+            )
         entry = cls._registry[module_id]
         params = {**entry.default_params, **(parameters or {})}
         return entry.module_class(params)
@@ -234,17 +252,22 @@ class ModuleRegistry:
     @classmethod
     def list_modules(cls) -> List[Dict]:
         return [
-            {"id": e.module_id, "description": e.description,
-             "params": e.default_params}
+            {
+                "id": e.module_id,
+                "description": e.description,
+                "params": e.default_params,
+            }
             for e in cls._registry.values()
         ]
 
 
 # ── Pipeline Preset System ──────────────────────────────────────────────
 
+
 @dataclass
 class PipelinePreset:
     """Pre-configured pipeline for common satellite modes."""
+
     name: str
     description: str
     sample_rate: float

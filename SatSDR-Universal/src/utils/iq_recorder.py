@@ -2,13 +2,15 @@
 IQ Recording & Replay Engine
 SigMF-compliant metadata, gzip-compressed storage, and precise replay.
 """
-import numpy as np
+
 import gzip
 import json
-import os
 import logging
+import os
 from datetime import datetime, timezone
 from pathlib import Path
+
+import numpy as np
 
 log = logging.getLogger("satsdr.iq_recorder")
 
@@ -23,8 +25,15 @@ class IQRecorder:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def record(self, samples: np.ndarray, frequency: float, sample_rate: float,
-               gain: float, hardware: str, compress: bool = True) -> str:
+    def record(
+        self,
+        samples: np.ndarray,
+        frequency: float,
+        sample_rate: float,
+        gain: float,
+        hardware: str,
+        compress: bool = True,
+    ) -> str:
         """
         Save IQ samples with SigMF metadata.
         Returns the path to the saved recording.
@@ -35,7 +44,7 @@ class IQRecorder:
         # Write IQ data
         if compress:
             iq_path = self.output_dir / f"{base_name}.iq.gz"
-            with gzip.open(iq_path, 'wb') as f:
+            with gzip.open(iq_path, "wb") as f:
                 f.write(samples.astype(np.complex64).tobytes())
         else:
             iq_path = self.output_dir / f"{base_name}.iq"
@@ -49,7 +58,7 @@ class IQRecorder:
                 "core:hw": hardware,
                 "core:version": "1.0.0",
                 "core:recorder": "SatSDR-Universal",
-                "core:description": f"Capture at {frequency/1e6:.3f} MHz"
+                "core:description": f"Capture at {frequency/1e6:.3f} MHz",
             },
             "captures": [
                 {
@@ -57,14 +66,14 @@ class IQRecorder:
                     "core:frequency": frequency,
                     "core:datetime": datetime.now(timezone.utc).isoformat(),
                     "satsdr:gain_db": gain,
-                    "satsdr:compressed": compress
+                    "satsdr:compressed": compress,
                 }
             ],
-            "annotations": []
+            "annotations": [],
         }
 
         meta_path = self.output_dir / f"{base_name}.sigmf-meta"
-        with open(meta_path, 'w') as f:
+        with open(meta_path, "w") as f:
             json.dump(meta, f, indent=2)
 
         log.info(f"Recorded {len(samples)} samples to {iq_path.name}")
@@ -78,25 +87,25 @@ class IQRecorder:
         path = Path(iq_path)
 
         # Load IQ data
-        if path.suffix == '.gz' or str(path).endswith('.iq.gz'):
-            with gzip.open(path, 'rb') as f:
+        if path.suffix == ".gz" or str(path).endswith(".iq.gz"):
+            with gzip.open(path, "rb") as f:
                 raw = f.read()
         else:
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 raw = f.read()
 
         samples = np.frombuffer(raw, dtype=np.complex64)
 
         # Load metadata
-        meta_path = path.with_suffix('').with_suffix('.sigmf-meta')
-        if not str(path).endswith('.iq.gz'):
-            meta_path = path.with_suffix('.sigmf-meta')
+        meta_path = path.with_suffix("").with_suffix(".sigmf-meta")
+        if not str(path).endswith(".iq.gz"):
+            meta_path = path.with_suffix(".sigmf-meta")
         else:
-            meta_path = Path(str(path).replace('.iq.gz', '.sigmf-meta'))
+            meta_path = Path(str(path).replace(".iq.gz", ".sigmf-meta"))
 
         metadata = {}
         if meta_path.exists():
-            with open(meta_path, 'r') as f:
+            with open(meta_path, "r") as f:
                 metadata = json.load(f)
 
         log.info(f"Replayed {len(samples)} samples from {path.name}")

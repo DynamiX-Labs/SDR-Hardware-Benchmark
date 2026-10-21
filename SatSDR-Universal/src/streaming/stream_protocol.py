@@ -21,12 +21,12 @@ The header dict contains:
     compressed : bool — whether payload is zlib-compressed
 """
 
+import logging
 import struct
 import time
 import zlib
-import logging
-from dataclasses import dataclass, field, asdict
-from typing import Optional, List, Any
+from dataclasses import asdict, dataclass, field
+from typing import Any, List, Optional
 
 import numpy as np
 
@@ -35,9 +35,11 @@ log = logging.getLogger("satsdr.stream.protocol")
 # Try importing msgpack — fall back to JSON if unavailable
 try:
     import msgpack  # type: ignore[import-untyped]
+
     _USE_MSGPACK = True
 except ImportError:
     import json
+
     _USE_MSGPACK = False
     log.warning("msgpack not installed — using JSON fallback (slower)")
 
@@ -53,8 +55,8 @@ PROTOCOL_VERSION = 1
 class SpectrumFrame:
     """A single spectrum data frame for WebSocket transmission."""
 
-    channel: str                       # e.g. "spectrum.psd"
-    timestamp: float = 0.0             # UNIX epoch UTC
+    channel: str  # e.g. "spectrum.psd"
+    timestamp: float = 0.0  # UNIX epoch UTC
     fft_size: int = 4096
     sample_rate: float = 250_000.0
     center_freq: float = 0.0
@@ -127,6 +129,7 @@ def pack_frame(frame: SpectrumFrame, compress_threshold: int = 8192) -> bytes:
             payload_bytes = msgpack.packb(frame.detections, use_bin_type=True)
         else:
             import json as _json
+
             payload_bytes = _json.dumps(frame.detections).encode("utf-8")
         frame.payload_dtype = "json"
         frame.payload_shape = [len(frame.detections)]
@@ -135,6 +138,7 @@ def pack_frame(frame: SpectrumFrame, compress_threshold: int = 8192) -> bytes:
             payload_bytes = msgpack.packb(frame.status, use_bin_type=True)
         else:
             import json as _json
+
             payload_bytes = _json.dumps(frame.status).encode("utf-8")
         frame.payload_dtype = "json"
         frame.payload_shape = [1]
@@ -186,7 +190,9 @@ def unpack_frame(data: bytes) -> SpectrumFrame:
     if magic != MAGIC:
         raise ValueError(f"Invalid magic: 0x{magic:08X} (expected 0x{MAGIC:08X})")
     if version > PROTOCOL_VERSION:
-        log.warning(f"Protocol version {version} > {PROTOCOL_VERSION} — may be incompatible")
+        log.warning(
+            f"Protocol version {version} > {PROTOCOL_VERSION} — may be incompatible"
+        )
 
     header_bytes = data[10 : 10 + header_len]
     payload_bytes = data[10 + header_len :]
@@ -215,6 +221,7 @@ def unpack_frame(data: bytes) -> SpectrumFrame:
                 frame.detections = msgpack.unpackb(payload_bytes, raw=False)
             else:
                 import json as _json
+
                 frame.detections = _json.loads(payload_bytes.decode("utf-8"))
         else:
             arr = np.frombuffer(payload_bytes, dtype=frame.payload_dtype)

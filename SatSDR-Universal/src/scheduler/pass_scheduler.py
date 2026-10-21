@@ -2,10 +2,11 @@
 Automated Pass Scheduler
 Predicts satellite passes using SGP4/Skyfield and queues decoder jobs.
 """
+
 import logging
 import time
-from typing import List, Dict, Optional
 from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional
 
 log = logging.getLogger("satsdr.scheduler")
 
@@ -29,10 +30,11 @@ class PassScheduler:
         Returns the number of satellites loaded.
         """
         import urllib.request
+
         url = f"https://celestrak.org/NORAD/elements/gp.php?GROUP={category}&FORMAT=tle"
         try:
             response = urllib.request.urlopen(url, timeout=10)
-            lines = response.read().decode().strip().split('\n')
+            lines = response.read().decode().strip().split("\n")
             count = 0
             for i in range(0, len(lines) - 2, 3):
                 name = lines[i].strip()
@@ -46,8 +48,12 @@ class PassScheduler:
             log.error(f"CelesTrak fetch failed: {e}")
             return 0
 
-    def predict_passes(self, satellite_name: str, hours_ahead: float = 24.0,
-                       min_elevation_deg: float = 10.0) -> List[Dict]:
+    def predict_passes(
+        self,
+        satellite_name: str,
+        hours_ahead: float = 24.0,
+        min_elevation_deg: float = 10.0,
+    ) -> List[Dict]:
         """
         Predict visible passes for a satellite over the ground station.
         Returns list of pass events with AOS, TCA, LOS times and max elevation.
@@ -57,7 +63,7 @@ class PassScheduler:
             return []
 
         try:
-            from skyfield.api import load, wgs84, EarthSatellite
+            from skyfield.api import EarthSatellite, load, wgs84
         except ImportError:
             log.error("skyfield not installed. Cannot predict passes.")
             return []
@@ -68,15 +74,22 @@ class PassScheduler:
         station = wgs84.latlon(self.lat, self.lon, self.alt_m)
 
         now = ts.now()
-        end = ts.from_datetime(datetime.now(timezone.utc) + timedelta(hours=hours_ahead))
+        end = ts.from_datetime(
+            datetime.now(timezone.utc) + timedelta(hours=hours_ahead)
+        )
 
-        t_events, events = sat.find_events(station, now, end, altitude_degrees=min_elevation_deg)
+        t_events, events = sat.find_events(
+            station, now, end, altitude_degrees=min_elevation_deg
+        )
 
         passes = []
         current_pass = {}
         for ti, event in zip(t_events, events):
             if event == 0:  # AOS
-                current_pass = {"satellite": satellite_name, "aos": ti.utc_datetime().isoformat()}
+                current_pass = {
+                    "satellite": satellite_name,
+                    "aos": ti.utc_datetime().isoformat(),
+                }
             elif event == 1:  # TCA (max elevation)
                 alt, _, _ = (sat - station).at(ti).altaz()
                 current_pass["tca"] = ti.utc_datetime().isoformat()
@@ -87,7 +100,9 @@ class PassScheduler:
                     passes.append(current_pass)
                 current_pass = {}
 
-        log.info(f"Predicted {len(passes)} passes for {satellite_name} in next {hours_ahead}h")
+        log.info(
+            f"Predicted {len(passes)} passes for {satellite_name} in next {hours_ahead}h"
+        )
         return passes
 
     def queue_pass(self, pass_event: Dict, decoder: str, frequency: float):
@@ -96,11 +111,13 @@ class PassScheduler:
             **pass_event,
             "decoder": decoder,
             "frequency": frequency,
-            "status": "queued"
+            "status": "queued",
         }
         self.pass_queue.append(job)
         self.pass_queue.sort(key=lambda x: x.get("aos", ""))
-        log.info(f"Queued: {pass_event['satellite']} @ {pass_event.get('aos', 'unknown')}")
+        log.info(
+            f"Queued: {pass_event['satellite']} @ {pass_event.get('aos', 'unknown')}"
+        )
 
     def get_next_pass(self) -> Optional[Dict]:
         """Return the next queued pass."""

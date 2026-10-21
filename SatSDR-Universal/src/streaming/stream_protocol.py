@@ -25,8 +25,8 @@ import logging
 import struct
 import time
 import zlib
-from dataclasses import asdict, dataclass, field
-from typing import Any, List, Optional
+from dataclasses import dataclass, field
+from typing import List, Optional
 
 import numpy as np
 

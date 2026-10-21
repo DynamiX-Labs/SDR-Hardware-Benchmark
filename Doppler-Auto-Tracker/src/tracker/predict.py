@@ -1,9 +1,8 @@
 """Satellite pass predictor (AOS/LOS/Max-El)."""
 
 import logging
-import math
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from rich.console import Console
 from rich.table import Table

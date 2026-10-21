@@ -18,15 +18,13 @@ Usage:
 """
 
 import enum
-import hashlib
 import logging
-import os
 import struct
 import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 log = logging.getLogger("satsdr.cfdp")
 

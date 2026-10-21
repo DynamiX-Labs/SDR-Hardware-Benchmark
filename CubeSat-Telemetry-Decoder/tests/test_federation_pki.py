@@ -3,7 +3,7 @@ import struct
 import time
 
 import pytest
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from src.ground_station.federation import FederationNode
 

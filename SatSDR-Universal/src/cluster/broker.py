@@ -23,9 +23,8 @@ Usage:
 import logging
 import threading
 import time
-import uuid
 from collections import deque
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 log = logging.getLogger("satsdr.cluster.broker")
 
@@ -36,8 +35,14 @@ try:
 except ImportError:
     _ZMQ_AVAILABLE = False
 
-from .models import (DecodeJob, DecodeResult, JobStatus, WorkerInfo,
-                     deserialize, serialize)
+from .models import (
+    DecodeJob,
+    DecodeResult,
+    JobStatus,
+    WorkerInfo,
+    deserialize,
+    serialize,
+)
 
 # Wire-level command constants
 CMD_READY = b"READY"

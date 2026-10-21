@@ -5,7 +5,6 @@ DynamiX Labs | https://github.com/DynamiX-Labs
 """
 
 import logging
-import sys
 from pathlib import Path
 
 import click

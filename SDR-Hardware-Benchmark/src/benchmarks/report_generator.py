@@ -8,12 +8,10 @@ DynamiX Labs
 
 import json
 import logging
-from dataclasses import dataclass
-from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from .dsp_benchmark import BenchmarkResult, DSPBenchmarkReport
+    from .dsp_benchmark import DSPBenchmarkReport
     from .system_profiler import SystemProfile
 
 log = logging.getLogger("benchmark.report")

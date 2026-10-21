@@ -10,12 +10,11 @@ DynamiX Labs
 
 import logging
 import struct
-import time
 import zlib
-from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Callable, Dict, List
 
-from .tm_packet import PacketStatus, TmPacket, TmPacketFactory
+from .tm_packet import TmPacket, TmPacketFactory
 
 log = logging.getLogger("cubesat.preprocessor")
 

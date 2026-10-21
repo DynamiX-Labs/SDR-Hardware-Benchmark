@@ -5,8 +5,12 @@ DynamiX Labs | Advanced Hardware Integration
 
 import numpy as np
 import pytest
-from src.benchmarks.rf_benchmark import (THRESHOLDS, RFBenchmarkReport,
-                                         RFBenchmarkResult, RFBenchmarkSuite)
+from src.benchmarks.rf_benchmark import (
+    THRESHOLDS,
+    RFBenchmarkReport,
+    RFBenchmarkResult,
+    RFBenchmarkSuite,
+)
 
 
 class TestRFBenchmarkSuite:

@@ -12,7 +12,7 @@ DynamiX Labs
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import List
 
 import numpy as np
 
@@ -169,7 +169,6 @@ class DSPBenchmark:
         self, n_taps: int = 31, sps: float = 2.0, alpha: float = 0.35
     ) -> BenchmarkResult:
         """Benchmark Root Raised Cosine filter (SatDump rrc category)."""
-        from scipy.signal import firwin, lfilter
 
         # Generate RRC taps via windowed-sinc approximation
         t = np.arange(-n_taps // 2, n_taps // 2 + 1) / sps

@@ -2,7 +2,7 @@ name: Automated Code Cleanup Bot
 
 on:
   schedule:
-    # Runs weekly on Sunday at midnight UTC to prevent daily failure spam
+    # Runs weekly on Sunday at midnight UTC to prevent daily spam
     - cron: '0 0 * * 0'
   workflow_dispatch:
     inputs:
@@ -75,8 +75,10 @@ jobs:
           git push
 
       - name: Create Pull Request with fixes
+        id: cpr
         if: steps.git_status.outputs.has_changes == 'true' && github.event.inputs.auto_commit != 'true'
         uses: peter-evans/create-pull-request@v7
+        continue-on-error: true
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(bot): automated code formatting and style cleanup"
@@ -101,3 +103,13 @@ jobs:
           branch: "bot/auto-cleanup"
           delete-branch: true
           labels: "cleanup, automated-pr"
+
+      - name: Pull Request Status Summary
+        if: steps.git_status.outputs.has_changes == 'true' && github.event.inputs.auto_commit != 'true'
+        run: |
+          if [ "${{ steps.cpr.outcome }}" = "success" ]; then
+            echo "Pull Request successfully created at: ${{ steps.cpr.outputs.pull-request-url }}"
+          else
+            echo "::notice title=PR Created on Branch::Branch 'bot/auto-cleanup' was pushed! You can open a PR at: https://github.com/${{ github.repository }}/pull/new/bot/auto-cleanup"
+            echo "Tip: To allow GitHub Actions to create PRs automatically without manual approval, go to Settings -> Actions -> General -> Workflow permissions and check 'Allow GitHub Actions to create and approve pull requests'."
+          fi

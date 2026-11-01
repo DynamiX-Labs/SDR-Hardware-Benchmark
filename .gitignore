@@ -1,9 +1,32 @@
+# Python bytecode & cache
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# Build & packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Testing & coverage
 .pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Logs & runtime outputs
 *.log
 results/
 cache/
 output/
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# OS specific
+.DS_Store
+Thumbs.db

@@ -5,6 +5,7 @@ DynamiX Labs | https://github.com/DynamiX-Labs
 """
 
 import logging
+import sys
 from pathlib import Path
 
 # Ensure UTF-8 output on Windows consoles

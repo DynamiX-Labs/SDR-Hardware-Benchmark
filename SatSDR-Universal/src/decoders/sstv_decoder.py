@@ -33,13 +33,10 @@ class SSTVDecoder(BaseDecoder):
         self.logger = logging.getLogger(__name__)
 
     def fm_demodulate(self, iq_samples: np.ndarray) -> np.ndarray:
-        """Standard FM quadrature demodulation"""
-        # phase = arctan(Q/I), derivative of phase is frequency
-        phase = np.angle(iq_samples)
-        demod = np.diff(phase)
-        # Unwrap phase and normalize
-        demod = np.unwrap(demod)
-        return demod
+        """Standard FM quadrature demodulation via conjugate product."""
+        if len(iq_samples) < 2:
+            return np.array([], dtype=np.float32)
+        return np.angle(iq_samples[1:] * np.conj(iq_samples[:-1]))
 
     def detect_sync(self, audio: np.ndarray) -> list:
         """Finds 1200 Hz sync pulses to align scan lines."""
@@ -87,6 +84,8 @@ class SSTVDecoder(BaseDecoder):
         )
         img = Image.fromarray(pixels)
 
+        from pathlib import Path
+        Path("results").mkdir(parents=True, exist_ok=True)
         img_path = "results/sstv_decoded.png"
         img.save(img_path)
 

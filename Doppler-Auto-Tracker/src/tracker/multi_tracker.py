@@ -127,22 +127,17 @@ class MultiTracker:
         all_passes.sort(key=lambda x: x.aos_time)
 
         # Conflict resolution (priority-based)
-        resolved = []
+        resolved: List[ActivePass] = []
         for p in all_passes:
-            conflict = False
-            for r in resolved:
-                # Check for overlap
-                if (p.aos_time < r.los_time) and (p.los_time > r.aos_time):
-                    # Conflict found! Check priority.
-                    if p.target.priority > r.target.priority:
-                        # New pass wins, remove old
-                        resolved.remove(r)
-                    else:
-                        # Old pass wins, skip new
-                        conflict = True
-                    break
-
-            if not conflict:
+            overlapping = [
+                r for r in resolved
+                if (p.aos_time < r.los_time and p.los_time > r.aos_time)
+            ]
+            if not overlapping:
+                resolved.append(p)
+            elif all(p.target.priority > r.target.priority for r in overlapping):
+                # New pass has strictly higher priority than all overlapping passes
+                resolved = [r for r in resolved if r not in overlapping]
                 resolved.append(p)
 
         self.schedule = resolved

@@ -87,28 +87,44 @@ class TLEFetcher:
 
     def _parse_tle_data(self, data: str):
         lines = [l.strip() for l in data.split("\n") if l.strip()]
-        for i in range(0, len(lines) - 2, 3):
-            name = lines[i]
-            line1 = lines[i + 1]
-            line2 = lines[i + 2]
-
-            # Basic validation
-            if (
-                len(line1) >= 68
-                and len(line2) >= 68
-                and line1.startswith("1 ")
-                and line2.startswith("2 ")
-            ):
-                try:
-                    norad_id = int(line1[2:7].strip())
-                    self._satellites[name.upper()] = {
-                        "name": name,
-                        "line1": line1,
-                        "line2": line2,
-                        "norad": norad_id,
-                    }
-                except ValueError:
-                    log.debug(f"Invalid NORAD ID in TLE for {name}")
+        i = 0
+        while i < len(lines):
+            # Check 3-line format: Name, Line 1, Line 2
+            if i + 2 < len(lines) and lines[i + 1].startswith("1 ") and lines[i + 2].startswith("2 "):
+                name = lines[i]
+                line1 = lines[i + 1]
+                line2 = lines[i + 2]
+                if len(line1) >= 68 and len(line2) >= 68:
+                    try:
+                        norad_id = int(line1[2:7].strip())
+                        self._satellites[name.upper()] = {
+                            "name": name,
+                            "line1": line1,
+                            "line2": line2,
+                            "norad": norad_id,
+                        }
+                    except ValueError:
+                        log.debug(f"Invalid NORAD ID in TLE for {name}")
+                i += 3
+            # Check 2-line format: Line 1, Line 2 (name inferred from NORAD)
+            elif i + 1 < len(lines) and lines[i].startswith("1 ") and lines[i + 1].startswith("2 "):
+                line1 = lines[i]
+                line2 = lines[i + 1]
+                if len(line1) >= 68 and len(line2) >= 68:
+                    try:
+                        norad_id = int(line1[2:7].strip())
+                        name = f"NORAD_{norad_id}"
+                        self._satellites[name.upper()] = {
+                            "name": name,
+                            "line1": line1,
+                            "line2": line2,
+                            "norad": norad_id,
+                        }
+                    except ValueError:
+                        log.debug(f"Invalid NORAD ID in 2-line TLE")
+                i += 2
+            else:
+                i += 1
 
     def get_satellite(self, name: str) -> Optional[Dict]:
         """Get TLE for a specific satellite by name (case-insensitive)."""

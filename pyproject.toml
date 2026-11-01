@@ -76,3 +76,19 @@ include = [
     "Doppler-Auto-Tracker*",
     "SDR-Hardware-Benchmark*"
 ]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "CubeSat-Telemetry-Decoder/tests",
+    "Doppler-Auto-Tracker/tests",
+    "SDR-Hardware-Benchmark/tests",
+    "SatSDR-Universal/tests",
+]
+pythonpath = [
+    ".",
+    "CubeSat-Telemetry-Decoder",
+    "Doppler-Auto-Tracker",
+    "SDR-Hardware-Benchmark",
+    "SatSDR-Universal",
+    "SatSDR-Universal/src",
+]

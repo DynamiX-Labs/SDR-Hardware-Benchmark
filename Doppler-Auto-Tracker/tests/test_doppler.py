@@ -18,3 +18,13 @@ def test_doppler_shift_iss():
 
     corrected = calc.corrected_frequency(137.9e6, dt=KNOWN_DT)
     assert corrected == 137.9e6 + shift
+
+
+def test_azel_calculation():
+    calc = DopplerCalculator(TLE1, TLE2, observer_lat=51.5, observer_lon=-0.1)
+    KNOWN_DT = datetime(2023, 10, 12, 11, 0, 0, tzinfo=timezone.utc)
+
+    az, el, rng = calc.get_azel(dt=KNOWN_DT)
+    assert 0.0 <= az <= 360.0
+    assert -90.0 <= el <= 90.0
+    assert rng > 300.0  # Above LEO minimum altitude

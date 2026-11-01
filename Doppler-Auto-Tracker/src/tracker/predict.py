@@ -113,6 +113,15 @@ class PassPredictor:
 
             dt += step
 
+        if in_pass:
+            current_pass["los"] = dt
+            duration = (dt - current_pass["aos"]).total_seconds()
+            current_pass["duration_s"] = int(duration)
+            current_pass["quality"] = (
+                "★" if current_pass["max_el"] >= 50 else ""
+            )
+            passes.append(current_pass)
+
         return passes
 
     def print_table(self, passes: List[Dict], station_name: str = "") -> None:

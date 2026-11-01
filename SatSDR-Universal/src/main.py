@@ -7,6 +7,19 @@ DynamiX Labs | https://github.com/DynamiX-Labs
 import logging
 from pathlib import Path
 
+# Ensure UTF-8 output on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+# Ensure src directory is on sys.path for direct script execution
+_src_dir = Path(__file__).resolve().parent
+if str(_src_dir) not in sys.path:
+    sys.path.insert(0, str(_src_dir))
+
 import click
 import colorlog
 
@@ -48,7 +61,7 @@ def cli(verbose):
     "--decoder",
     "-d",
     required=True,
-    type=click.Choice(["apt", "lrpt", "adsb", "ax25", "acars", "hrpt"]),
+    type=click.Choice(["apt", "lrpt", "adsb", "ax25", "acars", "hrpt", "sstv"]),
     help="Decoder to use",
 )
 @click.option("--freq", "-f", type=float, default=None, help="Center frequency in Hz")
@@ -69,8 +82,12 @@ def cli(verbose):
 )
 def decode(decoder, freq, hardware, iq_file, rate, gain, output):
     """Decode satellite signals from live SDR or IQ file."""
-    from .decoders import get_decoder
-    from .utils.hardware import HardwareManager
+    try:
+        from .decoders import get_decoder
+        from .utils.hardware import HardwareManager
+    except (ImportError, ValueError):
+        from decoders import get_decoder
+        from utils.hardware import HardwareManager
 
     log.info(f"Starting decoder: {decoder}")
     log.info(f"Hardware: {hardware} | Rate: {rate/1e3:.1f} kSPS | Gain: {gain} dB")
@@ -103,19 +120,36 @@ def decode(decoder, freq, hardware, iq_file, rate, gain, output):
 @click.option("--duration", type=int, default=30, help="Benchmark duration in seconds")
 def benchmark(hardware, duration):
     """Run DSP performance benchmark."""
-    from .dsp.benchmark import Benchmark
+    try:
+        from src.benchmarks.dsp_benchmark import SDRHardwareBenchmark
+    except (ImportError, ValueError):
+        try:
+            from benchmarks.dsp_benchmark import SDRHardwareBenchmark
+        except (ImportError, ValueError):
+            from utils.hardware import HardwareManager
+            SDRHardwareBenchmark = None
 
-    bm = Benchmark(hardware=hardware, duration=duration)
-    bm.run()
-    bm.report()
+    if SDRHardwareBenchmark:
+        bm = SDRHardwareBenchmark(driver=hardware, simulate=True)
+        results = bm.run_all()
+        log.info(f"Benchmark completed: {len(results)} metrics recorded")
+        bm.close()
+    else:
+        log.info(f"Running hardware probe for {hardware}...")
+        hw = HardwareManager(hardware)
+        log.info(f"Hardware profile: {hw.device_profile.driver} ({duration}s test)")
+        hw.close()
 
 
 @cli.command()
 def list_decoders():
     """List all available decoders."""
-    from .decoders import DECODER_REGISTRY
+    try:
+        from .decoders import DECODER_REGISTRY
+    except (ImportError, ValueError):
+        from decoders import DECODER_REGISTRY
 
-    click.echo("\nAvailable Decoders:\n" + "─" * 50)
+    click.echo("\nAvailable Decoders:\n" + "-" * 50)
     for name, cls in DECODER_REGISTRY.items():
         click.echo(f"  {name:12s} | {cls.FREQUENCY/1e6:.3f} MHz | {cls.MODULATION}")
     click.echo()
@@ -135,9 +169,14 @@ def stream(host, port, fps, fft_size, gpu, auth_token):
     """Start the WebSocket live spectrum streaming server."""
     import asyncio
 
-    from .dsp.gpu_backend import GPUBackend
-    from .dsp.spectral_engine import SpectralEngine
-    from .streaming.spectrum_server import SpectrumServer
+    try:
+        from .dsp.gpu_backend import GPUBackend
+        from .dsp.spectral_engine import SpectralEngine
+        from .streaming.spectrum_server import SpectrumServer
+    except (ImportError, ValueError):
+        from dsp.gpu_backend import GPUBackend
+        from dsp.spectral_engine import SpectralEngine
+        from streaming.spectrum_server import SpectrumServer
 
     log.info("Initialising spectrum streaming server...")
 
@@ -175,7 +214,10 @@ def stream(host, port, fps, fft_size, gpu, auth_token):
 @click.option("--timeout", type=float, default=30.0, help="Worker timeout (s)")
 def broker(frontend, backend, monitor, heartbeat, timeout):
     """Start the distributed decoder job broker."""
-    from .cluster.broker import DecoderBroker
+    try:
+        from .cluster.broker import DecoderBroker
+    except (ImportError, ValueError):
+        from cluster.broker import DecoderBroker
 
     log.info("Starting decoder broker...")
     brk = DecoderBroker(
@@ -203,8 +245,12 @@ def broker(frontend, backend, monitor, heartbeat, timeout):
 )
 def worker(broker_addr, worker_id, gpu, concurrency, capabilities):
     """Start a distributed decoder worker node."""
-    from .cluster.worker import DecoderWorker
-    from .dsp.gpu_backend import GPUBackend
+    try:
+        from .cluster.worker import DecoderWorker
+        from .dsp.gpu_backend import GPUBackend
+    except (ImportError, ValueError):
+        from cluster.worker import DecoderWorker
+        from dsp.gpu_backend import GPUBackend
 
     gpu_backend = None
     if gpu:
@@ -235,7 +281,10 @@ def worker(broker_addr, worker_id, gpu, concurrency, capabilities):
 @click.option("--pub", default="tcp://*:6001", help="Broadcast PUB bind address")
 def federation_hub(bind, pub):
     """Start the federated ground station hub (API-only)."""
-    from .federation import FederationHub
+    try:
+        from .federation import FederationHub
+    except (ImportError, ValueError):
+        from federation import FederationHub
 
     log.info("Starting federation hub...")
     hub = FederationHub(bind_addr=bind, pub_addr=pub)
@@ -254,7 +303,10 @@ def federation_hub(bind, pub):
 @click.option("--capabilities", default="", help="Comma-separated decoder types")
 def federation_node(station_id, lat, lon, hub, sub, capabilities):
     """Connect to the federation as a ground station node (API-only)."""
-    from .federation import FederationNode
+    try:
+        from .federation import FederationNode
+    except (ImportError, ValueError):
+        from federation import FederationNode
 
     caps = (
         [c.strip() for c in capabilities.split(",") if c.strip()]
@@ -297,7 +349,10 @@ def federation_node(station_id, lat, lon, hub, sub, capabilities):
 )
 def cfdp_send(source, dest_path, entity_id, peer_id, segment_size, mode):
     """Send a file via CCSDS CFDP protocol (API-only, no GUI)."""
-    from .protocols.cfdp import CFDPSender, TransmissionMode
+    try:
+        from .protocols.cfdp import CFDPSender, TransmissionMode
+    except (ImportError, ValueError):
+        from protocols.cfdp import CFDPSender, TransmissionMode
 
     tx_mode = (
         TransmissionMode.UNACKNOWLEDGED

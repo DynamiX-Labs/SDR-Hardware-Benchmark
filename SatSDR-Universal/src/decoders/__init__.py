@@ -4,12 +4,16 @@ from .acars_decoder import ACARSDecoder
 from .adsb_decoder import ADSBDecoder
 from .apt_decoder import APTDecoder
 from .hrpt_decoder import HRPTDecoder
+from .lrpt_decoder import LRPTDecoder
+from .sstv_decoder import SSTVDecoder
 
 DECODER_REGISTRY = {
     "apt": APTDecoder,
     "adsb": ADSBDecoder,
     "hrpt": HRPTDecoder,
     "acars": ACARSDecoder,
+    "lrpt": LRPTDecoder,
+    "sstv": SSTVDecoder,
 }
 
 

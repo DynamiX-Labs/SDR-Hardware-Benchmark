@@ -235,9 +235,15 @@ class RFBenchmarkSuite:
 
             repo_root = Path(__file__).resolve().parents[3]
             satsdr_dir = repo_root / "SatSDR-Universal"
+            satsdr_src = satsdr_dir / "src"
             if satsdr_dir.exists() and str(satsdr_dir) not in sys.path:
                 sys.path.insert(0, str(satsdr_dir))
-            from src.utils.hardware import HardwareManager
+            if satsdr_src.exists() and str(satsdr_src) not in sys.path:
+                sys.path.insert(0, str(satsdr_src))
+            try:
+                from utils.hardware import HardwareManager
+            except ImportError:
+                from src.utils.hardware import HardwareManager
 
             self._hw = HardwareManager(self.driver)
             self._hw.configure(

@@ -1,18 +1,6 @@
 """
 WebSocket Live Spectrum Streaming Server
 Async real-time RF spectrum distribution to browser & remote clients.
-DynamiX Labs | Phase 3
-
-Architecture:
-    ┌──────────────┐      ┌──────────────┐
-    │ SpectralEngine│─────►│ SpectrumServer│──► ws://host:8765
-    │ (PSD/Detect) │      │  (asyncio)    │──► ws://host:8765
-    └──────────────┘      └──────────────┘
-                                │
-                          ┌─────┴──────┐
-                          │ HTTP /api/  │
-                          │ health     │
-                          └────────────┘
 
 Usage:
     server = SpectrumServer(port=8765, spectral_engine=engine)
@@ -33,7 +21,10 @@ log = logging.getLogger("satsdr.stream.server")
 # Lazy imports for optional dependencies
 try:
     import websockets  # type: ignore[import-untyped]
-    from websockets.server import serve as ws_serve  # type: ignore
+    try:
+        from websockets.asyncio.server import serve as ws_serve  # type: ignore
+    except ImportError:
+        from websockets.server import serve as ws_serve  # type: ignore
 
     _WS_AVAILABLE = True
 except ImportError:

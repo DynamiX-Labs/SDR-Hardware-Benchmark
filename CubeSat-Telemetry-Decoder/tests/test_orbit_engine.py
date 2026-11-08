@@ -1,5 +1,5 @@
 import datetime
-import pytest
+
 from src.ground_station.orbit_engine import OrbitEngine
 
 # Example ISS TLE

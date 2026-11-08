@@ -21,6 +21,7 @@ log = logging.getLogger("satsdr.stream.server")
 # Lazy imports for optional dependencies
 try:
     import websockets  # type: ignore[import-untyped]
+
     try:
         from websockets.asyncio.server import serve as ws_serve  # type: ignore
     except ImportError:

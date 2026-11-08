@@ -90,7 +90,11 @@ class TLEFetcher:
         i = 0
         while i < len(lines):
             # Check 3-line format: Name, Line 1, Line 2
-            if i + 2 < len(lines) and lines[i + 1].startswith("1 ") and lines[i + 2].startswith("2 "):
+            if (
+                i + 2 < len(lines)
+                and lines[i + 1].startswith("1 ")
+                and lines[i + 2].startswith("2 ")
+            ):
                 name = lines[i]
                 line1 = lines[i + 1]
                 line2 = lines[i + 2]
@@ -107,7 +111,11 @@ class TLEFetcher:
                         log.debug(f"Invalid NORAD ID in TLE for {name}")
                 i += 3
             # Check 2-line format: Line 1, Line 2 (name inferred from NORAD)
-            elif i + 1 < len(lines) and lines[i].startswith("1 ") and lines[i + 1].startswith("2 "):
+            elif (
+                i + 1 < len(lines)
+                and lines[i].startswith("1 ")
+                and lines[i + 1].startswith("2 ")
+            ):
                 line1 = lines[i]
                 line2 = lines[i + 1]
                 if len(line1) >= 68 and len(line2) >= 68:

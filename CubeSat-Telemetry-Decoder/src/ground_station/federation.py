@@ -33,7 +33,9 @@ class FederationNode:
             self._load_keys(private_key_path, public_keys_dir)
 
         if hasattr(mqtt, "CallbackAPIVersion"):
-            self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=node_id)
+            self.client = mqtt.Client(
+                mqtt.CallbackAPIVersion.VERSION2, client_id=node_id
+            )
         else:
             self.client = mqtt.Client(client_id=node_id)
         self.broker = broker

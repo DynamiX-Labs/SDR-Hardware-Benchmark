@@ -85,6 +85,7 @@ class SSTVDecoder(BaseDecoder):
         img = Image.fromarray(pixels)
 
         from pathlib import Path
+
         Path("results").mkdir(parents=True, exist_ok=True)
         img_path = "results/sstv_decoded.png"
         img.save(img_path)

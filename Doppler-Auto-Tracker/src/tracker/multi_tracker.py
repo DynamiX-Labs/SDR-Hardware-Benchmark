@@ -130,7 +130,8 @@ class MultiTracker:
         resolved: List[ActivePass] = []
         for p in all_passes:
             overlapping = [
-                r for r in resolved
+                r
+                for r in resolved
                 if (p.aos_time < r.los_time and p.los_time > r.aos_time)
             ]
             if not overlapping:

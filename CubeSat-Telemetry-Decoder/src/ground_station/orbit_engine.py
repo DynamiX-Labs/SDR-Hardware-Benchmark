@@ -7,9 +7,9 @@ Includes a low-pass filter for closed-loop Doppler smoothing.
 import datetime
 import logging
 import math
-from typing import Optional, Tuple
+from typing import Optional
 
-from sgp4.api import WGS84, Satrec, jday
+from sgp4.api import Satrec, jday
 
 log = logging.getLogger("cubesat.orbit")
 
@@ -116,9 +116,7 @@ class OrbitEngine:
         if range_m > 0:
             ux, uy, uz = dx / range_m, dy / range_m, dz / range_m
             v_rel_m_s = (
-                (sat_vx - obs_vx) * ux
-                + (sat_vy - obs_vy) * uy
-                + (sat_vz - obs_vz) * uz
+                (sat_vx - obs_vx) * ux + (sat_vy - obs_vy) * uy + (sat_vz - obs_vz) * uz
             )
         else:
             v_rel_m_s = 0.0

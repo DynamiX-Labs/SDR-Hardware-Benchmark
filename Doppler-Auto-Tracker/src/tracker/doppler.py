@@ -149,9 +149,7 @@ class DopplerCalculator:
         )
         return corrected
 
-    def get_azel(
-        self, dt: Optional[datetime] = None
-    ) -> Tuple[float, float, float]:
+    def get_azel(self, dt: Optional[datetime] = None) -> Tuple[float, float, float]:
         """
         Compute azimuth (0-360 deg), elevation (-90 to +90 deg), and slant range (km).
         """

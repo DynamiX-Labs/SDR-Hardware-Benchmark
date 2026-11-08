@@ -128,6 +128,7 @@ def benchmark(hardware, duration):
             from benchmarks.dsp_benchmark import SDRHardwareBenchmark
         except (ImportError, ValueError):
             from utils.hardware import HardwareManager
+
             SDRHardwareBenchmark = None
 
     if SDRHardwareBenchmark:

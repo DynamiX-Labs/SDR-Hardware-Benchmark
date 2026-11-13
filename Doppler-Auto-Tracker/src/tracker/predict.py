@@ -349,8 +349,8 @@ class PassPredictor:
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "station": {
                 "name": station_name,
-                "latitude": self.obs_lat,
-                "longitude": self.obs_lon,
+                "latitude": "REDACTED",
+                "longitude": "REDACTED",
                 "altitude_m": self.obs_alt,
                 "min_elevation_deg": self.min_elevation,
             },

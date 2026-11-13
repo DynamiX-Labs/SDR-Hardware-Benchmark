@@ -3,9 +3,11 @@ Automated Pass Scheduler
 Predicts satellite passes using SGP4/Skyfield and queues decoder jobs.
 """
 
+import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Dict, List, Optional, Union
 
 log = logging.getLogger("satsdr.scheduler")
 
@@ -124,3 +126,49 @@ class PassScheduler:
             if job["status"] == "queued":
                 return job
         return None
+
+    def import_passes(
+        self,
+        schedule_or_path: Union[str, Path, Dict, List[Dict]],
+        default_decoder: Optional[str] = None,
+        default_frequency: Optional[float] = None,
+    ) -> int:
+        """
+        Import passes exported from Doppler-Auto-Tracker (JSON file, dict, or list).
+
+        Returns the number of passes queued.
+        """
+        if isinstance(schedule_or_path, (str, Path)):
+            with open(schedule_or_path, "r", encoding="utf-8") as fh:
+                payload = json.load(fh)
+        else:
+            payload = schedule_or_path
+
+        raw_passes = payload.get("passes", []) if isinstance(payload, dict) else payload
+        if not isinstance(raw_passes, list):
+            raise ValueError("Schedule payload must be a list of passes or a dict with 'passes'.")
+
+        queued = 0
+        for item in raw_passes:
+            decoder = item.get("decoder") or default_decoder
+            frequency = item.get("frequency") or item.get("nominal_freq_hz") or default_frequency
+            if not decoder or frequency is None:
+                raise ValueError(
+                    f"Missing decoder or frequency for pass '{item.get('satellite', 'unknown')}'."
+                )
+
+            event = {
+                "satellite": item["satellite"],
+                "aos": item["aos"],
+                "tca": item.get("tca") or item.get("max_el_time"),
+                "los": item["los"],
+                "max_elevation_deg": item.get("max_elevation_deg", item.get("max_el")),
+            }
+            for extra_key in ("norad", "duration_s", "doppler_curve", "max_doppler_shift_hz"):
+                if extra_key in item and item[extra_key] is not None:
+                    event[extra_key] = item[extra_key]
+
+            self.queue_pass(event, decoder=decoder, frequency=float(frequency))
+            queued += 1
+
+        return queued

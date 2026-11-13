@@ -349,9 +349,6 @@ class PassPredictor:
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "station": {
                 "name": station_name,
-                "latitude": "REDACTED",
-                "longitude": "REDACTED",
-                "altitude_m": self.obs_alt,
                 "min_elevation_deg": self.min_elevation,
             },
             "pass_count": len(passes),
@@ -467,7 +464,6 @@ class PassPredictor:
             f"DTEND:{los_ics}",
             f"SUMMARY:{_escape_ics_text(summary)}",
             f"DESCRIPTION:{_escape_ics_text(chr(10).join(desc_parts))}",
-            f"GEO:{self.obs_lat:.6f};{self.obs_lon:.6f}",
         ]
         if station_name:
             event_lines.append(f"LOCATION:{_escape_ics_text(station_name)}")
@@ -669,15 +665,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.export_format == "json":
         text = predictor.export_json(passes, output_path=args.output, station_name=station_name)
         if not args.output:
-            print("Export generated in-memory. Use --output to write full JSON payload to a file.")
+            print(text)
     elif args.export_format == "csv":
         text = predictor.export_csv(passes, output_path=args.output)
         if not args.output:
-            print("Export generated in-memory. Use --output to write full CSV payload to a file.")
+            print(text, end="")
     elif args.export_format == "ics":
         text = predictor.export_ics(passes, output_path=args.output, station_name=station_name)
         if not args.output:
-            print("Export generated in-memory. Use --output to write full ICS payload to a file.")
+            print(text, end="")
     else:
         predictor.print_table(passes, station_name=station_name)
 

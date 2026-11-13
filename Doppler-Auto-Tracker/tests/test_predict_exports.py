@@ -190,4 +190,5 @@ def test_predict_cli_exports_json_from_tle_file(tmp_path):
     assert out_json.exists()
     data = json.loads(out_json.read_text(encoding="utf-8"))
     assert "passes" in data
-    assert data["station"]["latitude"] == pytest.approx(51.5)
+    assert data["pass_count"] == len(data["passes"])
+    assert data["station"]["min_elevation_deg"] == pytest.approx(5.0)

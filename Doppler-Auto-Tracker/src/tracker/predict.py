@@ -669,15 +669,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.export_format == "json":
         text = predictor.export_json(passes, output_path=args.output, station_name=station_name)
         if not args.output:
-            print(text)
+            print("Export generated in-memory. Use --output to write full JSON payload to a file.")
     elif args.export_format == "csv":
         text = predictor.export_csv(passes, output_path=args.output)
         if not args.output:
-            print(text, end="")
+            print("Export generated in-memory. Use --output to write full CSV payload to a file.")
     elif args.export_format == "ics":
         text = predictor.export_ics(passes, output_path=args.output, station_name=station_name)
         if not args.output:
-            print(text, end="")
+            print("Export generated in-memory. Use --output to write full ICS payload to a file.")
     else:
         predictor.print_table(passes, station_name=station_name)
 
